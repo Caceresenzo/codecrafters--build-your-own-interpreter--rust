@@ -137,6 +137,7 @@ impl fmt::Display for Token {
 #[derive(Debug, PartialEq, Clone)]
 struct Scanner {
     source: String,
+    source_len: usize,
     tokens: Vec<Token>,
     start: usize,
     current: usize,
@@ -147,6 +148,7 @@ struct Scanner {
 impl Scanner {
     pub fn new(source: String) -> Self {
         Scanner {
+            source_len: source.chars().count(),
             source,
             tokens: Vec::new(),
             start: 0,
@@ -157,7 +159,7 @@ impl Scanner {
     }
 
     pub fn is_at_end(&self) -> bool {
-        self.current >= self.source.len()
+        self.current >= self.source_len
     }
 
     pub fn text(&self) -> String {
@@ -223,7 +225,7 @@ impl Scanner {
     fn peek_at(&self, n: usize) -> char {
         let index = self.current + n;
 
-        if index >= self.source.len() {
+        if index >= self.source_len {
             return '\0';
         }
 
