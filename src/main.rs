@@ -202,6 +202,8 @@ impl Scanner {
             '>' => self.add_token(TokenType::Greater),
             '/' if self.match_('/') => self.advance_next_line(),
             '/' => self.add_token(TokenType::Slash),
+            ' ' | '\r' | '\t' => (),
+            '\n' => self.line += 1,
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
