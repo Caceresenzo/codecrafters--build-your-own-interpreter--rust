@@ -198,6 +198,8 @@ impl Scanner {
             '<' => self.add_token(TokenType::Less),
             '>' if self.match_('=') => self.add_token(TokenType::GreaterEqual),
             '>' => self.add_token(TokenType::Greater),
+            '/' if self.match_('/') => self.advance_next_line(),
+            '/' => self.add_token(TokenType::Slash),
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
@@ -205,6 +207,26 @@ impl Scanner {
     fn advance(&mut self) -> char {
         let index = self.current;
         self.current += 1;
+        self.source.chars().nth(index).unwrap()
+    }
+
+    fn advance_next_line(&mut self) {
+        while self.peek() != '\n' && !self.is_at_end() {
+            self.advance();
+        }
+    }
+
+    fn peek(&self) -> char {
+        self.peek_at(0)
+    }
+
+    fn peek_at(&self, n: usize) -> char {
+        let index = self.current + n;
+
+        if index >= self.source.len() {
+            return '\0';
+        }
+
         self.source.chars().nth(index).unwrap()
     }
 
