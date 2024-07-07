@@ -192,6 +192,8 @@ impl Scanner {
             '*' => self.add_token(TokenType::Star),
             '=' if self.match_('=') => self.add_token(TokenType::EqualEqual),
             '=' => self.add_token(TokenType::Equal),
+            '!' if self.match_('=') => self.add_token(TokenType::BangEqual),
+            '!' => self.add_token(TokenType::Bang),
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
