@@ -194,6 +194,10 @@ impl Scanner {
             '=' => self.add_token(TokenType::Equal),
             '!' if self.match_('=') => self.add_token(TokenType::BangEqual),
             '!' => self.add_token(TokenType::Bang),
+            '<' if self.match_('=') => self.add_token(TokenType::LessEqual),
+            '<' => self.add_token(TokenType::Less),
+            '>' if self.match_('=') => self.add_token(TokenType::GreaterEqual),
+            '>' => self.add_token(TokenType::Greater),
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
