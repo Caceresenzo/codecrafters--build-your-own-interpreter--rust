@@ -31,7 +31,7 @@ pub enum TokenType {
     LessEqual,
 
     // Literals.
-    Identifier(String),
+    Identifier,
     StringLiteral(String),
     Number(f64),
 
@@ -80,7 +80,7 @@ impl fmt::Display for TokenType {
             TokenType::GreaterEqual => write!(f, "GREATER_EQUAL"),
             TokenType::Less => write!(f, "LESS"),
             TokenType::LessEqual => write!(f, "LESS_EQUAL"),
-            TokenType::Identifier(_) => write!(f, "IDENTIFIER"),
+            TokenType::Identifier => write!(f, "IDENTIFIER"),
             TokenType::StringLiteral(_) => write!(f, "STRING"),
             TokenType::Number(_) => write!(f, "NUMBER"),
             TokenType::And => write!(f, "AND"),
@@ -124,7 +124,6 @@ impl Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let literal: String = match &self.token_type {
-            TokenType::Identifier(value) => value.into(),
             TokenType::StringLiteral(value) => value.into(),
             TokenType::Number(value) => {
                 let int = *value as i64;
@@ -133,7 +132,7 @@ impl fmt::Display for Token {
                 } else {
                     value.to_string()
                 }
-            },
+            }
             _ => "null".into(),
         };
 
@@ -215,6 +214,8 @@ impl Scanner {
             _ => {
                 if self.is_number(character) {
                     self.number()
+                } else if self.is_alpha_or_number(character) {
+                    self.identifier()
                 } else {
                     self.error(self.line, format!("Unexpected character: {}", character))
                 }
@@ -305,8 +306,24 @@ impl Scanner {
         self.add_token(TokenType::Number(value));
     }
 
+    fn identifier(&mut self) {
+        while self.is_alpha_or_number(self.peek()) {
+            self.advance();
+        }
+
+        self.add_token(TokenType::Identifier);
+    }
+
     fn is_number(&self, character: char) -> bool {
         return character.is_numeric();
+    }
+
+    fn is_alpha(&self, character: char) -> bool {
+        return character.is_alphabetic() || character == '_';
+    }
+
+    fn is_alpha_or_number(&self, character: char) -> bool {
+        return self.is_alpha(character) || self.is_number(character);
     }
 
     fn error(&mut self, line: usize, message: String) {
