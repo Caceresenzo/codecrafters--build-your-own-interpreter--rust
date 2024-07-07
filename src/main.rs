@@ -206,7 +206,7 @@ impl Scanner {
     }
 
     fn report(&mut self, line: usize, where_: String, message: String) {
-        println!("[line {}] Error{}: {}", line, where_, message);
+        eprintln!("[line {}] Error{}: {}", line, where_, message);
         self.had_error = true;
     }
 }
