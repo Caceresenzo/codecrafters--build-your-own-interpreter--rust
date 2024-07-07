@@ -205,7 +205,13 @@ impl Scanner {
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
             '"' => self.string(),
-            _ => self.error(self.line, format!("Unexpected character: {}", character)),
+            _ => {
+                if self.is_number(character) {
+                    self.number()
+                } else {
+                    self.error(self.line, format!("Unexpected character: {}", character))
+                }
+            }
         }
     }
 
@@ -264,7 +270,7 @@ impl Scanner {
 
         if self.is_at_end() {
             self.error(self.line, "Unterminated string.".into());
-            return
+            return;
         }
 
         // closing "
@@ -272,6 +278,28 @@ impl Scanner {
 
         let value = &self.source[self.start + 1..self.current - 1];
         self.add_token(TokenType::StringLiteral(value.into()))
+    }
+
+    fn number(&mut self) {
+        while self.is_number(self.peek()) {
+            self.advance();
+        }
+
+        if self.peek() == '.' && self.is_number(self.peek_at(1)) {
+            // consume .
+            self.advance();
+
+            while self.is_number(self.peek()) {
+                self.advance();
+            }
+        }
+
+        let value: f64 = self.text().parse().unwrap();
+        self.add_token(TokenType::Number(value));
+    }
+
+    fn is_number(&self, character: char) -> bool {
+        return character.is_numeric();
     }
 
     fn error(&mut self, line: usize, message: String) {
