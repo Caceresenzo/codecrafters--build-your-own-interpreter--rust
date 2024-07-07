@@ -126,7 +126,14 @@ impl fmt::Display for Token {
         let literal: String = match &self.token_type {
             TokenType::Identifier(value) => value.into(),
             TokenType::StringLiteral(value) => value.into(),
-            TokenType::Number(value) => value.to_string(),
+            TokenType::Number(value) => {
+                let int = *value as i64;
+                if int as f64 == *value {
+                    format!("{}.0", int)
+                } else {
+                    value.to_string()
+                }
+            },
             _ => "null".into(),
         };
 
