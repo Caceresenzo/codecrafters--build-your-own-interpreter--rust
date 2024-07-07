@@ -2,6 +2,7 @@ use std::env;
 use std::fmt;
 use std::fs;
 use std::io::{self, Write};
+use std::process::exit;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
@@ -233,6 +234,10 @@ fn main() {
 
             for token in tokens {
                 println!("{}", token);
+            }
+
+            if scanner.had_error {
+                exit(65);
             }
         }
         _ => {
