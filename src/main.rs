@@ -170,7 +170,9 @@ impl Scanner {
             self.scan_token();
         }
 
-        self.tokens.push(Token::new(TokenType::Eof, "".into(), self.line));
+        self.tokens
+            .push(Token::new(TokenType::Eof, "".into(), self.line));
+
         self.tokens.clone()
     }
 
@@ -188,6 +190,8 @@ impl Scanner {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
+            '=' if self.match_('=') => self.add_token(TokenType::EqualEqual),
+            '=' => self.add_token(TokenType::Equal),
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
@@ -198,8 +202,22 @@ impl Scanner {
         self.source.chars().nth(index).unwrap()
     }
 
+    fn match_(&mut self, expected: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+
+        if self.source.chars().nth(self.current).unwrap() != expected {
+            return false;
+        }
+
+        self.current += 1;
+        true
+    }
+
     fn add_token(&mut self, token_type: TokenType) {
-        self.tokens.push(Token::new(token_type, self.text(), self.line));
+        self.tokens
+            .push(Token::new(token_type, self.text(), self.line));
     }
 
     fn error(&mut self, line: usize, message: String) {
