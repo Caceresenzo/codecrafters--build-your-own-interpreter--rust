@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fmt;
 use std::fs;
@@ -149,6 +150,7 @@ struct Scanner {
     current: usize,
     line: usize,
     had_error: bool,
+    keywords: HashMap<&'static str, TokenType>,
 }
 
 impl Scanner {
@@ -161,6 +163,24 @@ impl Scanner {
             current: 0,
             line: 1,
             had_error: false,
+            keywords: HashMap::from([
+                ("and", TokenType::And),
+                ("class", TokenType::Class),
+                ("else", TokenType::Else),
+                ("false", TokenType::False),
+                ("for", TokenType::For),
+                ("fun", TokenType::Fun),
+                ("if", TokenType::If),
+                ("nil", TokenType::Nil),
+                ("or", TokenType::Or),
+                ("print", TokenType::Print),
+                ("return", TokenType::Return),
+                ("super", TokenType::Super),
+                ("this", TokenType::This),
+                ("true", TokenType::True),
+                ("var", TokenType::Var),
+                ("while", TokenType::While),
+            ]),
         }
     }
 
@@ -311,7 +331,12 @@ impl Scanner {
             self.advance();
         }
 
-        self.add_token(TokenType::Identifier);
+        self.add_token(
+            self.keywords
+                .get(self.text().as_str())
+                .unwrap_or(&TokenType::Identifier)
+                .clone(),
+        );
     }
 
     fn is_number(&self, character: char) -> bool {
