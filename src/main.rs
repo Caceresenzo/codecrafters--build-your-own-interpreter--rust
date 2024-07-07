@@ -204,6 +204,7 @@ impl Scanner {
             '/' => self.add_token(TokenType::Slash),
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
+            '"' => self.string(),
             _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
@@ -250,6 +251,27 @@ impl Scanner {
     fn add_token(&mut self, token_type: TokenType) {
         self.tokens
             .push(Token::new(token_type, self.text(), self.line));
+    }
+
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.line += 1;
+            }
+
+            self.advance();
+        }
+
+        if self.is_at_end() {
+            self.error(self.line, "Unterminated string.".into());
+            return
+        }
+
+        // closing "
+        self.advance();
+
+        let value = &self.source[self.start + 1..self.current - 1];
+        self.add_token(TokenType::StringLiteral(value.into()))
     }
 
     fn error(&mut self, line: usize, message: String) {
