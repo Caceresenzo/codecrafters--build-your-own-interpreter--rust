@@ -187,7 +187,7 @@ impl Scanner {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
-            _ => (),
+            _ => self.error(self.line, format!("Unexpected character: {}", character)),
         }
     }
 
@@ -199,6 +199,15 @@ impl Scanner {
 
     fn add_token(&mut self, token_type: TokenType) {
         self.tokens.push(Token::new(token_type, self.text(), self.line));
+    }
+
+    fn error(&mut self, line: usize, message: String) {
+        self.report(line, "".into(), message);
+    }
+
+    fn report(&mut self, line: usize, where_: String, message: String) {
+        println!("[line {}] Error{}: {}", line, where_, message);
+        self.had_error = true;
     }
 }
 
