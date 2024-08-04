@@ -3,7 +3,10 @@ use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
 
-use interpreter_starter_rust::Scanner;
+use interpreter_starter_rust::{
+    Scanner,
+    Parser
+};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -32,6 +35,24 @@ fn main() {
             if scanner.had_error {
                 exit(65);
             }
+        }
+        "parse" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
+                String::new()
+            });
+
+            let mut scanner = Scanner::new(file_contents);
+            let tokens = scanner.scan_tokens();
+
+            if scanner.had_error {
+                exit(65);
+            }
+
+            let mut parser = Parser::new(tokens);
+            let root = parser.expression();
+
+            println!("{}", root);
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
