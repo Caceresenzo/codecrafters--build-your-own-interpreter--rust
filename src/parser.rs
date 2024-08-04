@@ -28,7 +28,7 @@ impl Parser {
             return Expression::Literal(Literal::Nil);
         }
 
-        if self.match_(&[&TokenType::Number]) {
+        if self.match_(&[&TokenType::Number, &TokenType::String]) {
             return Expression::Literal(self.previous().literal.as_ref().unwrap().clone());
         }
 
