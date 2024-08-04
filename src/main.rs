@@ -50,9 +50,10 @@ fn main() {
             }
 
             let mut parser = Parser::new(tokens);
-            let root = parser.expression();
-
-            println!("{}", root);
+            match parser.expression() {
+                Ok(root) => println!("{}", root),
+                Err(error) => eprintln!("{error}")
+            }
         }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
