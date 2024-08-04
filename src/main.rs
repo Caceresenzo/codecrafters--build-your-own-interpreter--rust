@@ -3,10 +3,7 @@ use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
 
-use interpreter_starter_rust::{
-    Scanner,
-    Parser
-};
+use interpreter_starter_rust::{Parser, Scanner};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -52,7 +49,10 @@ fn main() {
             let mut parser = Parser::new(tokens);
             match parser.expression() {
                 Ok(root) => println!("{}", root),
-                Err(error) => eprintln!("{error}")
+                Err(error) => {
+                    eprintln!("{error}");
+                    exit(65);
+                }
             }
         }
         _ => {
