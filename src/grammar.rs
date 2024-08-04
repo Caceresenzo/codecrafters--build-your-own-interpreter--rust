@@ -28,8 +28,8 @@ pub enum TokenType {
 
     // Literals.
     Identifier,
-    StringLiteral(String),
-    Number(f64),
+    String,
+    Number,
 
     // Keywords.
     And,
@@ -76,8 +76,8 @@ impl fmt::Display for TokenType {
             TokenType::Less => write!(f, "LESS"),
             TokenType::LessEqual => write!(f, "LESS_EQUAL"),
             TokenType::Identifier => write!(f, "IDENTIFIER"),
-            TokenType::StringLiteral(_) => write!(f, "STRING"),
-            TokenType::Number(_) => write!(f, "NUMBER"),
+            TokenType::String => write!(f, "STRING"),
+            TokenType::Number => write!(f, "NUMBER"),
             TokenType::And => write!(f, "AND"),
             TokenType::Class => write!(f, "CLASS"),
             TokenType::Else => write!(f, "ELSE"),
@@ -102,14 +102,21 @@ impl fmt::Display for TokenType {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token_type: TokenType,
+    pub literal: Option<Literal>,
     pub lexeme: String,
     pub line: usize,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, line: usize) -> Self {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        literal: Option<Literal>,
+        line: usize,
+    ) -> Self {
         Token {
             token_type,
+            literal,
             lexeme,
             line,
         }
@@ -118,19 +125,43 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let literal: String = match &self.token_type {
-            TokenType::StringLiteral(value) => value.into(),
-            TokenType::Number(value) => {
-                let int = *value as i64;
-                if int as f64 == *value {
-                    format!("{}.0", int)
+        match &self.literal {
+            Some(value) => write!(f, "{} {} {value}", self.token_type, self.lexeme),
+            None => write!(f, "{} {} null", self.token_type, self.lexeme),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum Literal {
+    Nil,
+    Boolean(bool),
+    String(String),
+    Number(f64),
+}
+
+impl fmt::Display for Literal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Literal::Nil => write!(f, "nil"),
+            Literal::Boolean(value) => {
+                if *value {
+                    write!(f, "true")
                 } else {
-                    value.to_string()
+                    write!(f, "false")
                 }
             }
-            _ => "null".into(),
-        };
-
-        write!(f, "{} {} {}", self.token_type, self.lexeme, literal)
+            Literal::String(value) => {
+                write!(f, "{value}")
+            }
+            Literal::Number(value) => {
+                let int = *value as i64;
+                if int as f64 == *value {
+                    write!(f, "{int}.0")
+                } else {
+                    write!(f, "{value}")
+                }
+            }
+        }
     }
 }

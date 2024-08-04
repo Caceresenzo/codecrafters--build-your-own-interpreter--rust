@@ -1,5 +1,4 @@
-use crate::{Expression, Value};
-use crate::{Token, TokenType};
+use crate::{Expression, Literal, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Parser {
@@ -18,15 +17,19 @@ impl Parser {
 
     pub fn primary(&mut self) -> Expression {
         if self.match_(&[&TokenType::False]) {
-            return Expression::Literal(Value::Boolean(false));
+            return Expression::Literal(Literal::Boolean(false));
         }
 
         if self.match_(&[&TokenType::True]) {
-            return Expression::Literal(Value::Boolean(true));
+            return Expression::Literal(Literal::Boolean(true));
         }
 
         if self.match_(&[&TokenType::Nil]) {
-            return Expression::Literal(Value::Nil);
+            return Expression::Literal(Literal::Nil);
+        }
+
+        if self.match_(&[&TokenType::Number]) {
+            return Expression::Literal(self.previous().literal.as_ref().unwrap().clone());
         }
 
         panic!();

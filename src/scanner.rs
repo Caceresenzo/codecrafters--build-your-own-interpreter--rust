@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{Token, TokenType};
+use crate::{Literal, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Scanner {
@@ -60,7 +60,7 @@ impl Scanner {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "".into(), self.line));
+            .push(Token::new(TokenType::Eof, "".into(), None, self.line));
 
         self.tokens.clone()
     }
@@ -69,26 +69,26 @@ impl Scanner {
         let character = self.advance();
 
         match character {
-            '(' => self.add_token(TokenType::LeftParen),
-            ')' => self.add_token(TokenType::RightParen),
-            '{' => self.add_token(TokenType::LeftBrace),
-            '}' => self.add_token(TokenType::RightBrace),
-            ',' => self.add_token(TokenType::Comma),
-            '.' => self.add_token(TokenType::Dot),
-            '-' => self.add_token(TokenType::Minus),
-            '+' => self.add_token(TokenType::Plus),
-            ';' => self.add_token(TokenType::Semicolon),
-            '*' => self.add_token(TokenType::Star),
-            '=' if self.match_('=') => self.add_token(TokenType::EqualEqual),
-            '=' => self.add_token(TokenType::Equal),
-            '!' if self.match_('=') => self.add_token(TokenType::BangEqual),
-            '!' => self.add_token(TokenType::Bang),
-            '<' if self.match_('=') => self.add_token(TokenType::LessEqual),
-            '<' => self.add_token(TokenType::Less),
-            '>' if self.match_('=') => self.add_token(TokenType::GreaterEqual),
-            '>' => self.add_token(TokenType::Greater),
+            '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Dot, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::Semicolon, None),
+            '*' => self.add_token(TokenType::Star, None),
+            '=' if self.match_('=') => self.add_token(TokenType::EqualEqual, None),
+            '=' => self.add_token(TokenType::Equal, None),
+            '!' if self.match_('=') => self.add_token(TokenType::BangEqual, None),
+            '!' => self.add_token(TokenType::Bang, None),
+            '<' if self.match_('=') => self.add_token(TokenType::LessEqual, None),
+            '<' => self.add_token(TokenType::Less, None),
+            '>' if self.match_('=') => self.add_token(TokenType::GreaterEqual, None),
+            '>' => self.add_token(TokenType::Greater, None),
             '/' if self.match_('/') => self.advance_next_line(),
-            '/' => self.add_token(TokenType::Slash),
+            '/' => self.add_token(TokenType::Slash, None),
             ' ' | '\r' | '\t' => (),
             '\n' => self.line += 1,
             '"' => self.string(),
@@ -143,9 +143,9 @@ impl Scanner {
         true
     }
 
-    fn add_token(&mut self, token_type: TokenType) {
+    fn add_token(&mut self, token_type: TokenType, literal: Option<Literal>) {
         self.tokens
-            .push(Token::new(token_type, self.text(), self.line));
+            .push(Token::new(token_type, self.text(), literal, self.line));
     }
 
     fn string(&mut self) {
@@ -166,7 +166,7 @@ impl Scanner {
         self.advance();
 
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token(TokenType::StringLiteral(value.into()))
+        self.add_token(TokenType::String, Some(Literal::String(value.into())))
     }
 
     fn number(&mut self) {
@@ -184,7 +184,7 @@ impl Scanner {
         }
 
         let value: f64 = self.text().parse().unwrap();
-        self.add_token(TokenType::Number(value));
+        self.add_token(TokenType::Number, Some(Literal::Number(value)));
     }
 
     fn identifier(&mut self) {
@@ -197,6 +197,7 @@ impl Scanner {
                 .get(self.text().as_str())
                 .unwrap_or(&TokenType::Identifier)
                 .clone(),
+            None,
         );
     }
 
