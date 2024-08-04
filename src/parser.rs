@@ -1,5 +1,3 @@
-use core::panic;
-
 use crate::{Expression, Literal, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,7 +47,7 @@ impl Parser {
             return Ok(Expression::Grouping(Box::new(expression)));
         }
 
-        panic!();
+        Err(self.error(self.peek(), "Expect expression."))
     }
 
     pub fn match_(&mut self, token_types: &[&TokenType]) -> bool {
