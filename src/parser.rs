@@ -18,6 +18,17 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> ParserResult {
+        self.unary()
+    }
+
+    pub fn unary(&mut self) -> ParserResult {
+        if self.match_(&[&TokenType::Bang, &TokenType::Minus]) {
+            let operator = self.previous().clone();
+            let right = self.unary()?;
+
+            return Ok(Expression::Unary(operator, Box::new(right)));
+        }
+
         self.primary()
     }
 
