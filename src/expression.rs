@@ -6,7 +6,15 @@ use crate::{Literal, Token};
 pub enum Expression {
     Literal(Literal),
     Grouping(Box<Expression>),
-    Unary(Token, Box<Expression>),
+    Unary {
+        operator: Token,
+        right: Box<Expression>
+    },
+    Binary {
+        left: Box<Expression>,
+        operator: Token,
+        right: Box<Expression>
+    },
 }
 
 impl fmt::Display for Expression {
@@ -14,7 +22,8 @@ impl fmt::Display for Expression {
         match self {
             Expression::Literal(value) => write!(f, "{value}"),
             Expression::Grouping(expression) => write!(f, "(group {expression})"),
-            Expression::Unary(operator, expression) => write!(f, "({} {expression})", operator.lexeme),
+            Expression::Unary { operator, right } => write!(f, "({} {right})", operator.lexeme),
+            Expression::Binary { left, operator, right } => write!(f, "({} {left} {right})", operator.lexeme),
         }
     }
 }
