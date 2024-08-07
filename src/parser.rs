@@ -18,7 +18,24 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> ParserResult {
-        self.term()
+        self.comparison()
+    }
+
+    pub fn comparison(&mut self) -> ParserResult {
+        let mut expression = self.term()?;
+
+        while self.match_(&[&TokenType::Greater, &TokenType::GreaterEqual, &TokenType::Less, &TokenType::LessEqual]) {
+            let operator = self.previous().clone();
+            let right = self.term()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                operator,
+                right: Box::new(right),
+            }
+        }
+
+        Ok(expression)
     }
 
     pub fn term(&mut self) -> ParserResult {
