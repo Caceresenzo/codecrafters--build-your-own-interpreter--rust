@@ -17,6 +17,7 @@ impl Interpreter {
     pub fn evaluate(&self, expression: Expression) -> InterpreterResult {
         match expression {
             Expression::Literal(literal) => Ok(literal),
+            Expression::Grouping(child) => self.evaluate(*child),
             _ => Err(InterpreterError("unsupported".into())),
         }
     }
