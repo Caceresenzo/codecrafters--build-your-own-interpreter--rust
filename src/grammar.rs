@@ -157,7 +157,7 @@ impl fmt::Display for Literal {
             Literal::Number(value) => {
                 let int = *value as i64;
                 if int as f64 == *value {
-                    write!(f, "{int}.0")
+                    write!(f, "{int}")
                 } else {
                     write!(f, "{value}")
                 }
