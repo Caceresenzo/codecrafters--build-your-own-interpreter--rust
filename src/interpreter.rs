@@ -30,7 +30,24 @@ impl Interpreter {
                     _ => panic!("unreachable"),
                 }
             }
-            _ => Err(InterpreterError("unsupported".into())),
+            Expression::Binary {
+                left,
+                operator,
+                right,
+            } => {
+                let left_child = self.evaluate(*left)?;
+                let right_child = self.evaluate(*right)?;
+
+                match operator.token_type {
+                    TokenType::Slash => Ok(Literal::Number(
+                        self.number(left_child)? / self.number(right_child)?,
+                    )),
+                    TokenType::Star => Ok(Literal::Number(
+                        self.number(left_child)? * self.number(right_child)?,
+                    )),
+                    _ => panic!("unreachable"),
+                }
+            }
         }
     }
 
@@ -39,6 +56,13 @@ impl Interpreter {
             Literal::Nil => false,
             Literal::Boolean(value) => value,
             _ => true,
+        }
+    }
+
+    pub fn number(&self, literal: Literal) -> Result<f64, InterpreterError> {
+        match literal {
+            Literal::Number(value) => Ok(value),
+            _ => Err(InterpreterError("expected number".into())),
         }
     }
 }
