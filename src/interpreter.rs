@@ -48,9 +48,24 @@ impl Interpreter {
                     TokenType::Minus => Ok(Literal::Number(
                         self.number(left_child)? - self.number(right_child)?,
                     )),
-                    TokenType::Plus => Ok(Literal::Number(
-                        self.number(left_child)? + self.number(right_child)?,
-                    )),
+                    TokenType::Plus => {
+                        if let (Literal::Number(a), Literal::Number(b)) =
+                            (&left_child, &right_child)
+                        {
+                            return Ok(Literal::Number(*a + *b));
+                        }
+
+                        if let (Literal::String(a), Literal::String(b)) =
+                            (&left_child, &right_child)
+                        {
+                            let mut output = a.to_owned();
+                            output.push_str(b);
+
+                            return Ok(Literal::String(output));
+                        }
+
+                        Err(InterpreterError("expected number or string".into()))
+                    }
                     _ => panic!("unreachable"),
                 }
             }
