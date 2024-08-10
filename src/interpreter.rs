@@ -45,6 +45,12 @@ impl Interpreter {
                     TokenType::Star => Ok(Literal::Number(
                         self.number(left_child)? * self.number(right_child)?,
                     )),
+                    TokenType::Minus => Ok(Literal::Number(
+                        self.number(left_child)? - self.number(right_child)?,
+                    )),
+                    TokenType::Plus => Ok(Literal::Number(
+                        self.number(left_child)? + self.number(right_child)?,
+                    )),
                     _ => panic!("unreachable"),
                 }
             }
