@@ -65,7 +65,19 @@ impl Interpreter {
                         }
 
                         Err(InterpreterError("expected number or string".into()))
-                    }
+                    },
+                    TokenType::Greater => Ok(Literal::Boolean(
+                        self.number(left_child)? > self.number(right_child)?,
+                    )),
+                    TokenType::GreaterEqual => Ok(Literal::Boolean(
+                        self.number(left_child)? >= self.number(right_child)?,
+                    )),
+                    TokenType::Less => Ok(Literal::Boolean(
+                        self.number(left_child)? < self.number(right_child)?,
+                    )),
+                    TokenType::LessEqual => Ok(Literal::Boolean(
+                        self.number(left_child)? <= self.number(right_child)?,
+                    )),
                     _ => panic!("unreachable"),
                 }
             }
