@@ -65,7 +65,7 @@ impl Interpreter {
                         }
 
                         Err(InterpreterError("expected number or string".into()))
-                    },
+                    }
                     TokenType::Greater => Ok(Literal::Boolean(
                         self.number(left_child)? > self.number(right_child)?,
                     )),
@@ -78,6 +78,8 @@ impl Interpreter {
                     TokenType::LessEqual => Ok(Literal::Boolean(
                         self.number(left_child)? <= self.number(right_child)?,
                     )),
+                    TokenType::BangEqual => Ok(Literal::Boolean(left_child != right_child)),
+                    TokenType::EqualEqual => Ok(Literal::Boolean(left_child == right_child)),
                     _ => panic!("unreachable"),
                 }
             }
