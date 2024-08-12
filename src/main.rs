@@ -85,7 +85,12 @@ fn main() {
                 },
                 Err(error) => {
                     eprintln!("{error}");
-                    exit(65);
+
+                    if let Some(token) = error.token {
+                        eprintln!("[line {}]", token.line);
+                    }
+
+                    exit(70);
                 }
             }
         }

@@ -1,11 +1,14 @@
-use crate::{Expression, Literal, TokenType};
+use crate::{Expression, Literal, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Interpreter {}
 
 #[derive(Debug, thiserror::Error)]
-#[error("{0}")]
-pub struct InterpreterError(String);
+#[error("{message}")]
+pub struct InterpreterError {
+    pub token: Option<Token>,
+    pub message: String,
+}
 
 type InterpreterResult = Result<Literal, InterpreterError>;
 
@@ -23,10 +26,9 @@ impl Interpreter {
 
                 match operator.token_type {
                     TokenType::Bang => Ok(Literal::Boolean(!self.is_truthy(right_child))),
-                    TokenType::Minus => match right_child {
-                        Literal::Number(x) => Ok(Literal::Number(-x)),
-                        _ => Err(InterpreterError("expected number".into())),
-                    },
+                    TokenType::Minus => Ok(Literal::Number(
+                        -self.check_number_operand(&operator, &right_child)?,
+                    )),
                     _ => panic!("unreachable"),
                 }
             }
@@ -64,7 +66,10 @@ impl Interpreter {
                             return Ok(Literal::String(output));
                         }
 
-                        Err(InterpreterError("expected number or string".into()))
+                        Err(InterpreterError {
+                            token: None,
+                            message: "expected number or string".into(),
+                        })
                     }
                     TokenType::Greater => Ok(Literal::Boolean(
                         self.number(left_child)? > self.number(right_child)?,
@@ -97,7 +102,24 @@ impl Interpreter {
     pub fn number(&self, literal: Literal) -> Result<f64, InterpreterError> {
         match literal {
             Literal::Number(value) => Ok(value),
-            _ => Err(InterpreterError("expected number".into())),
+            _ => Err(InterpreterError {
+                token: None,
+                message: "expected number".into(),
+            }),
+        }
+    }
+
+    pub fn check_number_operand(
+        &self,
+        operator: &Token,
+        operand: &Literal,
+    ) -> Result<f64, InterpreterError> {
+        match operand {
+            Literal::Number(x) => Ok(*x),
+            _ => Err(InterpreterError {
+                token: Some(operator.clone()),
+                message: "Operand must be a number.".into(),
+            }),
         }
     }
 }
