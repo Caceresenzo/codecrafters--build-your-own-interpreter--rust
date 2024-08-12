@@ -41,12 +41,16 @@ impl Interpreter {
                 let right_child = self.evaluate(*right)?;
 
                 match operator.token_type {
-                    TokenType::Slash => Ok(Literal::Number(
-                        self.number(left_child)? / self.number(right_child)?,
-                    )),
-                    TokenType::Star => Ok(Literal::Number(
-                        self.number(left_child)? * self.number(right_child)?,
-                    )),
+                    TokenType::Slash => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Number(x / y));
+                    },
+                    TokenType::Star => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Number(x * y));
+                    },
                     TokenType::Minus => Ok(Literal::Number(
                         self.number(left_child)? - self.number(right_child)?,
                     )),
@@ -119,6 +123,21 @@ impl Interpreter {
             _ => Err(InterpreterError {
                 token: Some(operator.clone()),
                 message: "Operand must be a number.".into(),
+            }),
+        }
+    }
+
+    pub fn check_number_operands(
+        &self,
+        operator: &Token,
+        left: &Literal,
+        right: &Literal,
+    ) -> Result<(f64, f64), InterpreterError> {
+        match (left, right) {
+            (Literal::Number(x), Literal::Number(y)) => Ok((*x, *y)),
+            _ => Err(InterpreterError {
+                token: Some(operator.clone()),
+                message: "Operands must be a number.".into(),
             }),
         }
     }
