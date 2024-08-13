@@ -113,16 +113,6 @@ impl Interpreter {
         }
     }
 
-    pub fn number(&self, literal: Literal) -> Result<f64, InterpreterError> {
-        match literal {
-            Literal::Number(value) => Ok(value),
-            _ => Err(InterpreterError {
-                token: None,
-                message: "expected number".into(),
-            }),
-        }
-    }
-
     pub fn check_number_operand(
         &self,
         operator: &Token,
