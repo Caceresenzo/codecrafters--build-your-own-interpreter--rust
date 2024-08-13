@@ -51,9 +51,11 @@ impl Interpreter {
 
                         return Ok(Literal::Number(x * y));
                     },
-                    TokenType::Minus => Ok(Literal::Number(
-                        self.number(left_child)? - self.number(right_child)?,
-                    )),
+                    TokenType::Minus => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Number(x - y));
+                    },
                     TokenType::Plus => {
                         if let (Literal::Number(a), Literal::Number(b)) =
                             (&left_child, &right_child)
@@ -71,8 +73,8 @@ impl Interpreter {
                         }
 
                         Err(InterpreterError {
-                            token: None,
-                            message: "expected number or string".into(),
+                            token: Some(operator.clone()),
+                            message: "Operands must be two numbers or two strings.".into(),
                         })
                     }
                     TokenType::Greater => Ok(Literal::Boolean(
