@@ -77,18 +77,26 @@ impl Interpreter {
                             message: "Operands must be two numbers or two strings.".into(),
                         })
                     }
-                    TokenType::Greater => Ok(Literal::Boolean(
-                        self.number(left_child)? > self.number(right_child)?,
-                    )),
-                    TokenType::GreaterEqual => Ok(Literal::Boolean(
-                        self.number(left_child)? >= self.number(right_child)?,
-                    )),
-                    TokenType::Less => Ok(Literal::Boolean(
-                        self.number(left_child)? < self.number(right_child)?,
-                    )),
-                    TokenType::LessEqual => Ok(Literal::Boolean(
-                        self.number(left_child)? <= self.number(right_child)?,
-                    )),
+                    TokenType::Greater => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Boolean(x > y));
+                    },
+                    TokenType::GreaterEqual => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Boolean(x >= y));
+                    },
+                    TokenType::Less => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Boolean(x < y));
+                    },
+                    TokenType::LessEqual => {
+                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+
+                        return Ok(Literal::Boolean(x <= y));
+                    },
                     TokenType::BangEqual => Ok(Literal::Boolean(left_child != right_child)),
                     TokenType::EqualEqual => Ok(Literal::Boolean(left_child == right_child)),
                     _ => panic!("unreachable"),
