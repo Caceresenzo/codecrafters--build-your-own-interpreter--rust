@@ -173,7 +173,7 @@ impl Scanner {
             .source
             .chars()
             .skip(self.start + 1)
-            .take(self.current - self.start - 1)
+            .take(self.current - self.start - 2)
             .collect::<String>();
 
         self.add_token(TokenType::String, Some(Literal::String(value.into())))
