@@ -32,8 +32,10 @@ impl Interpreter {
     pub fn execute(&self, statement: Statement) -> ExecuteInterpreterResult {
         match statement {
             Statement::Print(expression) => {
-                let value = self.evaluate(expression)?;
-                println!("{value}");
+                match self.evaluate(expression)? {
+                    Literal::Number(value) => println!("{value}"),
+                    value => println!("{value}"),
+                }
             }
             Statement::Expression(expression) => {
                 self.evaluate(expression)?;
