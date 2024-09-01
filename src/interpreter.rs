@@ -1,7 +1,7 @@
 use {
     crate::{Expression, Literal, Statement, Token, TokenType},
+    std::collections::HashMap,
     std::vec::Vec,
-    std::collections::HashMap
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -22,7 +22,7 @@ pub struct Environment {
 impl Environment {
     pub fn new() -> Self {
         Environment {
-            values: HashMap::new()
+            values: HashMap::new(),
         }
     }
 
@@ -30,7 +30,20 @@ impl Environment {
         self.values.insert(name, value);
     }
 
-    pub fn get(&mut self, name: &Token) -> EvaluateInterpreterResult {
+    pub fn assign(&mut self, name: &Token, value: &Literal) -> Result<(), InterpreterError> {
+        let lexeme = &name.lexeme;
+        if self.values.contains_key(lexeme) {
+            self.values.insert(lexeme.clone(), value.clone());
+            return Ok(());
+        }
+
+        Err(InterpreterError {
+            token: Some(name.clone()),
+            message: format!("Undefined variable '{lexeme}'."),
+        })
+    }
+
+    pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {
         let lexeme = &name.lexeme;
         if let Some(value) = self.values.get(lexeme) {
             return Ok(value.clone());
@@ -38,20 +51,20 @@ impl Environment {
 
         Err(InterpreterError {
             token: Some(name.clone()),
-            message: format!("Undefined variable '{lexeme}'.")
+            message: format!("Undefined variable '{lexeme}'."),
         })
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Interpreter {
-    environment: Environment
+    environment: Environment,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {
-            environment: Environment::new()
+            environment: Environment::new(),
         }
     }
 
@@ -65,24 +78,19 @@ impl Interpreter {
 
     pub fn execute(&mut self, statement: Statement) -> ExecuteInterpreterResult {
         match statement {
-            Statement::Print(expression) => {
-                match self.evaluate(expression)? {
-                    Literal::Number(value) => println!("{value}"),
-                    value => println!("{value}"),
-                }
-            }
+            Statement::Print(expression) => match self.evaluate(expression)? {
+                Literal::Number(value) => println!("{value}"),
+                value => println!("{value}"),
+            },
             Statement::Expression(expression) => {
                 self.evaluate(expression)?;
             }
-            Statement::Variable{
-                name,
-                initializer,
-            }  => {
+            Statement::Variable { name, initializer } => {
                 let mut value = Literal::Nil;
                 if let Some(expression) = initializer {
                     value = self.evaluate(expression)?;
                 }
-        
+
                 self.environment.define(name.lexeme, value)
             }
         }
@@ -184,6 +192,13 @@ impl Interpreter {
             }
             Expression::Variable(name) => {
                 return self.environment.get(&name);
+            }
+            Expression::Assign { name, right } => {
+                let value = self.evaluate(*right)?;
+
+                self.environment.assign(&name, &value)?;
+
+                return Ok(value);
             }
         }
     }

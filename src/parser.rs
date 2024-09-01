@@ -85,7 +85,27 @@ impl Parser {
     }
 
     pub fn expression(&mut self) -> ExpressionParserResult {
-        self.equality()
+        self.assignment()
+    }
+
+    pub fn assignment(&mut self) -> ExpressionParserResult {
+        let expression = self.equality()?;
+
+        if self.match_(&[&TokenType::Equal]) {
+            let equals = self.previous().clone();
+            let value = self.assignment()?;
+
+            if let Expression::Variable(name) = expression {
+                return Ok(Expression::Assign {
+                    name: name.clone(),
+                    right: Box::new(value),
+                });
+            }
+
+            return Err(self.error(&equals, "Invalid assignment target."));
+        }
+
+        Ok(expression)
     }
 
     pub fn equality(&mut self) -> ExpressionParserResult {
