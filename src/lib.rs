@@ -1,11 +1,13 @@
-pub mod grammar;
-pub mod scanner;
 pub mod expression;
-pub mod parser;
+pub mod grammar;
 pub mod interpreter;
+pub mod parser;
+pub mod scanner;
+pub mod statement;
 
-pub use grammar::*;
-pub use scanner::*;
 pub use expression::*;
-pub use parser::*;
+pub use grammar::*;
 pub use interpreter::*;
+pub use parser::*;
+pub use scanner::*;
+pub use statement::*;

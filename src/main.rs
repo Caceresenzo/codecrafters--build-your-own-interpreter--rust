@@ -94,6 +94,42 @@ fn main() {
                 }
             }
         }
+        "run" => {
+            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+                writeln!(io::stderr(), "Failed to read file {}", filename).unwrap();
+                String::new()
+            });
+
+            let mut scanner = Scanner::new(file_contents);
+            let tokens = scanner.scan_tokens();
+
+            if scanner.had_error {
+                exit(65);
+            }
+
+            let mut parser = Parser::new(tokens);
+            let statements = match parser.parse() {
+                Ok(statements) => statements,
+                Err(error) => {
+                    eprintln!("{error}");
+                    exit(65);
+                }
+            };
+
+            let interpreter = Interpreter::new();
+            match interpreter.interpret(statements) {
+                Ok(_) => {},
+                Err(error) => {
+                    eprintln!("{error}");
+
+                    if let Some(token) = error.token {
+                        eprintln!("[line {}]", token.line);
+                    }
+
+                    exit(70);
+                }
+            }
+        }
         _ => {
             writeln!(io::stderr(), "Unknown command: {}", command).unwrap();
             return;

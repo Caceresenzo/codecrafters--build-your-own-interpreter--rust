@@ -1,4 +1,7 @@
-use crate::{Expression, Literal, Token, TokenType};
+use {
+    crate::{Expression, Literal, Statement, Token, TokenType},
+    std::vec::Vec,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Interpreter {}
@@ -10,14 +13,37 @@ pub struct InterpreterError {
     pub message: String,
 }
 
-type InterpreterResult = Result<Literal, InterpreterError>;
+type ExecuteInterpreterResult = Result<(), InterpreterError>;
+type EvaluateInterpreterResult = Result<Literal, InterpreterError>;
 
 impl Interpreter {
     pub fn new() -> Self {
         Interpreter {}
     }
 
-    pub fn evaluate(&self, expression: Expression) -> InterpreterResult {
+    pub fn interpret(&self, statements: Vec<Statement>) -> ExecuteInterpreterResult {
+        for statement in statements {
+            self.execute(statement)?
+        }
+
+        Ok(())
+    }
+
+    pub fn execute(&self, statement: Statement) -> ExecuteInterpreterResult {
+        match statement {
+            Statement::Print(expression) => {
+                let value = self.evaluate(expression)?;
+                println!("{value}");
+            }
+            Statement::Expression(expression) => {
+                self.evaluate(expression)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn evaluate(&self, expression: Expression) -> EvaluateInterpreterResult {
         match expression {
             Expression::Literal(literal) => Ok(literal),
             Expression::Grouping(child) => self.evaluate(*child),
@@ -42,20 +68,23 @@ impl Interpreter {
 
                 match operator.token_type {
                     TokenType::Slash => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Number(x / y));
-                    },
+                    }
                     TokenType::Star => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Number(x * y));
-                    },
+                    }
                     TokenType::Minus => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Number(x - y));
-                    },
+                    }
                     TokenType::Plus => {
                         if let (Literal::Number(a), Literal::Number(b)) =
                             (&left_child, &right_child)
@@ -78,25 +107,29 @@ impl Interpreter {
                         })
                     }
                     TokenType::Greater => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Boolean(x > y));
-                    },
+                    }
                     TokenType::GreaterEqual => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Boolean(x >= y));
-                    },
+                    }
                     TokenType::Less => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Boolean(x < y));
-                    },
+                    }
                     TokenType::LessEqual => {
-                        let (x, y) = self.check_number_operands(&operator, &left_child, &right_child)?;
+                        let (x, y) =
+                            self.check_number_operands(&operator, &left_child, &right_child)?;
 
                         return Ok(Literal::Boolean(x <= y));
-                    },
+                    }
                     TokenType::BangEqual => Ok(Literal::Boolean(left_child != right_child)),
                     TokenType::EqualEqual => Ok(Literal::Boolean(left_child == right_child)),
                     _ => panic!("unreachable"),

@@ -1,4 +1,6 @@
-use crate::{Expression, Literal, Token, TokenType};
+use std::vec::Vec;
+
+use crate::{Expression, Statement, Literal, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Parser {
@@ -10,18 +12,54 @@ pub struct Parser {
 #[error("{0}")]
 pub struct ParseError(String);
 
-type ParserResult = Result<Expression, ParseError>;
+type StatementParserResult = Result<Statement, ParseError>;
+type ExpressionParserResult = Result<Expression, ParseError>;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
 
-    pub fn expression(&mut self) -> ParserResult {
+    pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
+        let mut statements: Vec<Statement> = Vec::new();
+
+        while !self.is_at_end() {
+            let statement = self.statement()?;
+            statements.push(statement);
+        }
+        
+        Ok(statements)
+    }
+
+    pub fn statement(&mut self) -> StatementParserResult {
+        if self.match_(&[&TokenType::Print]) {
+            return self.print();
+        }
+
+        self.expression_statement()
+    }
+
+    pub fn print(&mut self) -> StatementParserResult {
+        let expression = self.expression()?;
+
+        self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
+
+        Ok(Statement::Print(expression))
+    }
+
+    pub fn expression_statement(&mut self) -> StatementParserResult {
+        let expression = self.expression()?;
+
+        self.consume(&TokenType::Semicolon, "Expect ';' after expression.")?;
+
+        Ok(Statement::Expression(expression))
+    }
+
+    pub fn expression(&mut self) -> ExpressionParserResult {
         self.equality()
     }
 
-    pub fn equality(&mut self) -> ParserResult {
+    pub fn equality(&mut self) -> ExpressionParserResult {
         let mut expression = self.comparison()?;
 
         while self.match_(&[&TokenType::BangEqual, &TokenType::EqualEqual]) {
@@ -38,7 +76,7 @@ impl Parser {
         Ok(expression)
     }
 
-    pub fn comparison(&mut self) -> ParserResult {
+    pub fn comparison(&mut self) -> ExpressionParserResult {
         let mut expression = self.term()?;
 
         while self.match_(&[&TokenType::Greater, &TokenType::GreaterEqual, &TokenType::Less, &TokenType::LessEqual]) {
@@ -55,7 +93,7 @@ impl Parser {
         Ok(expression)
     }
 
-    pub fn term(&mut self) -> ParserResult {
+    pub fn term(&mut self) -> ExpressionParserResult {
         let mut expression = self.factor()?;
 
         while self.match_(&[&TokenType::Minus, &TokenType::Plus]) {
@@ -72,7 +110,7 @@ impl Parser {
         Ok(expression)
     }
 
-    pub fn factor(&mut self) -> ParserResult {
+    pub fn factor(&mut self) -> ExpressionParserResult {
         let mut expression = self.unary()?;
 
         while self.match_(&[&TokenType::Slash, &TokenType::Star]) {
@@ -89,7 +127,7 @@ impl Parser {
         Ok(expression)
     }
 
-    pub fn unary(&mut self) -> ParserResult {
+    pub fn unary(&mut self) -> ExpressionParserResult {
         if self.match_(&[&TokenType::Bang, &TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
@@ -103,7 +141,7 @@ impl Parser {
         self.primary()
     }
 
-    pub fn primary(&mut self) -> ParserResult {
+    pub fn primary(&mut self) -> ExpressionParserResult {
         if self.match_(&[&TokenType::False]) {
             return Ok(Expression::Literal(Literal::Boolean(false)));
         }
