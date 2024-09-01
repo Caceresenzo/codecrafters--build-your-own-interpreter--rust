@@ -8,13 +8,14 @@ pub enum Expression {
     Grouping(Box<Expression>),
     Unary {
         operator: Token,
-        right: Box<Expression>
+        right: Box<Expression>,
     },
     Binary {
         left: Box<Expression>,
         operator: Token,
-        right: Box<Expression>
+        right: Box<Expression>,
     },
+    Variable(Token),
 }
 
 impl fmt::Display for Expression {
@@ -23,7 +24,12 @@ impl fmt::Display for Expression {
             Expression::Literal(value) => write!(f, "{value}"),
             Expression::Grouping(expression) => write!(f, "(group {expression})"),
             Expression::Unary { operator, right } => write!(f, "({} {right})", operator.lexeme),
-            Expression::Binary { left, operator, right } => write!(f, "({} {left} {right})", operator.lexeme),
+            Expression::Binary {
+                left,
+                operator,
+                right,
+            } => write!(f, "({} {left} {right})", operator.lexeme),
+            Expression::Variable(name) => write!(f, "(var {})", name.lexeme),
         }
     }
 }

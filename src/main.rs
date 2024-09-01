@@ -77,7 +77,7 @@ fn main() {
                 }
             };
 
-            let interpreter = Interpreter::new();
+            let mut interpreter = Interpreter::new();
             match interpreter.evaluate(root) {
                 Ok(value) => match value {
                     Literal::Number(x) => println!("{}", x),
@@ -116,7 +116,7 @@ fn main() {
                 }
             };
 
-            let interpreter = Interpreter::new();
+            let mut interpreter = Interpreter::new();
             match interpreter.interpret(statements) {
                 Ok(_) => {},
                 Err(error) => {

@@ -1,6 +1,6 @@
 use std::vec::Vec;
 
-use crate::{Expression, Statement, Literal, Token, TokenType};
+use crate::{Expression, Literal, Statement, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Parser {
@@ -24,11 +24,19 @@ impl Parser {
         let mut statements: Vec<Statement> = Vec::new();
 
         while !self.is_at_end() {
-            let statement = self.statement()?;
+            let statement = self.declaration()?;
             statements.push(statement);
         }
-        
+
         Ok(statements)
+    }
+
+    pub fn declaration(&mut self) -> StatementParserResult {
+        if self.match_(&[&TokenType::Var]) {
+            return self.variable();
+        }
+
+        self.statement()
     }
 
     pub fn statement(&mut self) -> StatementParserResult {
@@ -45,6 +53,27 @@ impl Parser {
         self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(Statement::Print(expression))
+    }
+
+    pub fn variable(&mut self) -> StatementParserResult {
+        let name = self
+            .consume(&TokenType::Identifier, "Expect variable name.")?
+            .clone();
+
+        let mut initializer: Option<Expression> = None;
+        if self.match_(&[&TokenType::Equal]) {
+            initializer = Some(self.expression()?);
+        }
+
+        self.consume(
+            &TokenType::Semicolon,
+            "Expect ';' after variable declaration.",
+        )?;
+
+        Ok(Statement::Variable {
+            name: name.clone(),
+            initializer,
+        })
     }
 
     pub fn expression_statement(&mut self) -> StatementParserResult {
@@ -79,7 +108,12 @@ impl Parser {
     pub fn comparison(&mut self) -> ExpressionParserResult {
         let mut expression = self.term()?;
 
-        while self.match_(&[&TokenType::Greater, &TokenType::GreaterEqual, &TokenType::Less, &TokenType::LessEqual]) {
+        while self.match_(&[
+            &TokenType::Greater,
+            &TokenType::GreaterEqual,
+            &TokenType::Less,
+            &TokenType::LessEqual,
+        ]) {
             let operator = self.previous().clone();
             let right = self.term()?;
 
@@ -158,6 +192,10 @@ impl Parser {
             return Ok(Expression::Literal(
                 self.previous().literal.as_ref().unwrap().clone(),
             ));
+        }
+
+        if self.match_(&[&TokenType::Identifier]) {
+            return Ok(Expression::Variable(self.previous().clone()));
         }
 
         if self.match_(&[&TokenType::LeftParen]) {
