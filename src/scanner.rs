@@ -50,7 +50,11 @@ impl Scanner {
     }
 
     pub fn text(&self) -> String {
-        self.source[self.start..self.current].into()
+        self.source
+            .chars()
+            .skip(self.start)
+            .take(self.current - self.start)
+            .collect::<String>()
     }
 
     pub fn scan_tokens(&mut self) -> Vec<Token> {
@@ -165,7 +169,13 @@ impl Scanner {
         // closing "
         self.advance();
 
-        let value = &self.source[self.start + 1..self.current - 1];
+        let value = self
+            .source
+            .chars()
+            .skip(self.start + 1)
+            .take(self.current - self.start - 1)
+            .collect::<String>();
+
         self.add_token(TokenType::String, Some(Literal::String(value.into())))
     }
 
