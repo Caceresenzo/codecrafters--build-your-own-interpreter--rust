@@ -1,4 +1,7 @@
-use crate::{Expression, Token};
+use {
+    crate::{Expression, Token},
+    std::vec::Vec,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
@@ -8,4 +11,5 @@ pub enum Statement {
         name: Token,
         initializer: Option<Expression>,
     },
+    Block(Vec<Statement>),
 }

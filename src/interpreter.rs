@@ -93,8 +93,30 @@ impl Interpreter {
 
                 self.environment.define(name.lexeme, value)
             }
+            Statement::Block(statements) => {
+                self.execute_block(statements, self.environment.clone())?;
+            }
         }
 
+        Ok(())
+    }
+
+    pub fn execute_block(
+        &mut self,
+        statements: Vec<Statement>,
+        environment: Environment,
+    ) -> ExecuteInterpreterResult {
+        let previous = self.environment.clone();
+        self.environment = environment;
+
+        for statement in statements {
+            if let Err(error) = self.execute(statement) {
+                self.environment = previous;
+                return Err(error);
+            }
+        }
+
+        self.environment = previous;
         Ok(())
     }
 
