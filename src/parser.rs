@@ -128,7 +128,7 @@ impl Parser {
     }
 
     pub fn assignment(&mut self) -> ExpressionParserResult {
-        let expression = self.equality()?;
+        let expression = self.or()?;
 
         if self.match_(&[&TokenType::Equal]) {
             let equals = self.previous().clone();
@@ -159,6 +159,40 @@ impl Parser {
                 operator,
                 right: Box::new(right),
             }
+        }
+
+        Ok(expression)
+    }
+
+    pub fn or(&mut self) -> ExpressionParserResult {
+        let mut expression = self.and()?;
+
+        while self.match_(&[&TokenType::Or]) {
+            let operator = self.previous().clone();
+            let right = self.and()?;
+
+            expression = Expression::Logical {
+                left: Box::new(expression),
+                operator,
+                right: Box::new(right)
+            };
+        }
+
+        Ok(expression)
+    }
+
+    pub fn and(&mut self) -> ExpressionParserResult {
+        let mut expression = self.equality()?;
+
+        while self.match_(&[&TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = self.equality()?;
+
+            expression = Expression::Logical {
+                left: Box::new(expression),
+                operator,
+                right: Box::new(right)
+            };
         }
 
         Ok(expression)

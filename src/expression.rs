@@ -20,6 +20,11 @@ pub enum Expression {
         name: Token,
         right: Box<Expression>,
     },
+    Logical {
+        left: Box<Expression>,
+        operator: Token,
+        right: Box<Expression>,
+    },
 }
 
 impl fmt::Display for Expression {
@@ -35,6 +40,7 @@ impl fmt::Display for Expression {
             } => write!(f, "({} {left} {right})", operator.lexeme),
             Expression::Variable(name) => write!(f, "(var {})", name.lexeme),
             Expression::Assign { name, right } => write!(f, "(assign {} {right})", name.lexeme),
+            Expression::Logical { left, operator, right } => write!(f, "(logical {} {left} {right})", operator.lexeme),
         }
     }
 }

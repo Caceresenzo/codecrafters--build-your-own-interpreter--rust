@@ -189,6 +189,28 @@ impl Interpreter {
 
                 return Ok(value);
             }
+            Expression::Logical { left, operator, right } => {
+                let left_value = self.evaluate(*left)?;
+                let is_left_truthy = self.is_truthy(left_value.clone());
+
+                match operator.token_type {
+                    TokenType::Or => {
+                        if is_left_truthy {
+                            return Ok(left_value);
+                        }
+
+                        self.evaluate(*right)
+                    },
+                    TokenType::And => {
+                        if !is_left_truthy {
+                            return Ok(left_value);
+                        }
+
+                        self.evaluate(*right)
+                    }
+                    _ => panic!("unreachable"),
+                }
+            }
         }
     }
 
