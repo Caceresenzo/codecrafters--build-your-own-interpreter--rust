@@ -78,13 +78,22 @@ impl Interpreter {
 
     pub fn execute(&mut self, statement: Statement) -> ExecuteInterpreterResult {
         match statement {
+            Statement::Expression(expression) => {
+                self.evaluate(expression)?;
+            }
+            Statement::If { condition, then_branch, else_branch } => {
+                let result = self.evaluate(condition)?;
+
+                if self.is_truthy(result) {
+                    self.execute(*then_branch)?;
+                } else if let Some(statement) = else_branch {
+                    self.execute(*statement)?;
+                }
+            },
             Statement::Print(expression) => match self.evaluate(expression)? {
                 Literal::Number(value) => println!("{value}"),
                 value => println!("{value}"),
             },
-            Statement::Expression(expression) => {
-                self.evaluate(expression)?;
-            }
             Statement::Variable { name, initializer } => {
                 let mut value = Literal::Nil;
                 if let Some(expression) = initializer {
