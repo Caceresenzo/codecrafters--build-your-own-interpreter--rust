@@ -16,5 +16,9 @@ pub enum Statement {
         name: Token,
         initializer: Option<Expression>,
     },
+    While {
+        condition: Expression,
+        body: Box<Statement>,
+    },
     Block(Vec<Statement>),
 }

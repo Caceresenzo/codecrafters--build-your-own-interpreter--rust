@@ -60,6 +60,17 @@ impl Interpreter {
 
                 self.environment.define(name.lexeme, value)
             }
+            Statement::While { condition, body } => {
+                loop {
+                    let is_true = self.evaluate(condition.clone())?;
+
+                    if !self.is_truthy(is_true) {
+                        break;
+                    }
+
+                    self.execute(*body.clone())?;
+                }
+            }
             Statement::Block(statements) => {
                 self.execute_block(statements, self.environment.enclose())?;
             }
