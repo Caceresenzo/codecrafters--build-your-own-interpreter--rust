@@ -1,3 +1,4 @@
+pub mod environment;
 pub mod expression;
 pub mod grammar;
 pub mod interpreter;
@@ -5,6 +6,7 @@ pub mod parser;
 pub mod scanner;
 pub mod statement;
 
+pub use environment::Environment;
 pub use expression::*;
 pub use grammar::*;
 pub use interpreter::*;
