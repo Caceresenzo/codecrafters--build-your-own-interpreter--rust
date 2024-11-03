@@ -40,6 +40,10 @@ impl Parser {
     }
 
     pub fn statement(&mut self) -> StatementParserResult {
+        if self.match_(&[&TokenType::For]) {
+            return self.for_();
+        }
+
         if self.match_(&[&TokenType::If]) {
             return self.if_();
         }
@@ -57,6 +61,50 @@ impl Parser {
         }
 
         self.expression_statement()
+    }
+
+    pub fn for_(&mut self) -> StatementParserResult {
+        self.consume(&TokenType::LeftParen, "Expect '(' after 'for'.")?;
+
+        let initializer: Option<Statement>;
+        if self.match_(&[&TokenType::Semicolon]) {
+            initializer = None;
+        } else if self.match_(&[&TokenType::Var]) {
+            initializer = Some(self.variable()?);
+        } else {
+            initializer = Some(self.expression_statement()?);
+        }
+
+        let mut condition = Expression::Literal(Literal::Boolean(true));
+        if !self.check(&TokenType::Semicolon) {
+            condition = self.expression()?;
+        }
+
+        self.consume(&TokenType::Semicolon, "Expect ';' after loop condition.")?;
+
+        let mut increment: Option<Expression> = None;
+        if !self.check(&TokenType::RightParen) {
+            increment = Some(self.expression()?);
+        }
+        
+        self.consume(&TokenType::RightParen, "Expect ')' after for clauses.")?;
+
+        let mut body = self.statement()?;
+
+        if let Some(expression) = increment {
+            body = Statement::Block(vec![body, Statement::Expression(expression)]);
+        }
+
+        body = Statement::While {
+            condition,
+            body: Box::new(body),
+        };
+
+        if let Some(expression) = initializer {
+            body = Statement::Block(vec![expression, body]);
+        }
+
+        Ok(body)
     }
 
     pub fn if_(&mut self) -> StatementParserResult {
@@ -164,23 +212,6 @@ impl Parser {
         Ok(expression)
     }
 
-    pub fn equality(&mut self) -> ExpressionParserResult {
-        let mut expression = self.comparison()?;
-
-        while self.match_(&[&TokenType::BangEqual, &TokenType::EqualEqual]) {
-            let operator = self.previous().clone();
-            let right = self.comparison()?;
-
-            expression = Expression::Binary {
-                left: Box::new(expression),
-                operator,
-                right: Box::new(right),
-            }
-        }
-
-        Ok(expression)
-    }
-
     pub fn or(&mut self) -> ExpressionParserResult {
         let mut expression = self.and()?;
 
@@ -210,6 +241,23 @@ impl Parser {
                 operator,
                 right: Box::new(right),
             };
+        }
+
+        Ok(expression)
+    }
+
+    pub fn equality(&mut self) -> ExpressionParserResult {
+        let mut expression = self.comparison()?;
+
+        while self.match_(&[&TokenType::BangEqual, &TokenType::EqualEqual]) {
+            let operator = self.previous().clone();
+            let right = self.comparison()?;
+
+            expression = Expression::Binary {
+                left: Box::new(expression),
+                operator,
+                right: Box::new(right),
+            }
         }
 
         Ok(expression)
