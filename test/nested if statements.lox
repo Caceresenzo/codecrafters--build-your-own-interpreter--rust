@@ -1,0 +1,3 @@
+if (true) if (true) print "nested true";
+
+if (true) if (false) print "world"; else print "baz";
