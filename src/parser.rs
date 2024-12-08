@@ -390,7 +390,7 @@ impl Parser {
 
                 arguments.push(self.expression()?);
 
-                if self.match_(&[&TokenType::Comma]) {
+                if !self.match_(&[&TokenType::Comma]) {
                     break
                 }
             }
