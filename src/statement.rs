@@ -21,6 +21,10 @@ pub enum Statement {
         name: Token,
         initializer: Option<Expression>,
     },
+    Return {
+        keyword: Token,
+        value: Option<Expression>,
+    },
     While {
         condition: Expression,
         body: Box<Statement>,

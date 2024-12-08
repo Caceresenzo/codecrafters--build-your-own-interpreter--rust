@@ -44,9 +44,17 @@ impl Parser {
     }
 
     pub fn function(&mut self, kind: &str) -> StatementParserResult {
-        let name = self.consume(&TokenType::Identifier, format!("Expect {kind} name.").as_str())?.clone();
+        let name = self
+            .consume(
+                &TokenType::Identifier,
+                format!("Expect {kind} name.").as_str(),
+            )?
+            .clone();
 
-        self.consume(&TokenType::LeftParen, format!("Expect '(' after {kind} name.").as_str())?;
+        self.consume(
+            &TokenType::LeftParen,
+            format!("Expect '(' after {kind} name.").as_str(),
+        )?;
 
         let mut parameters: Vec<Token> = Vec::new();
         if !self.check(&TokenType::RightParen) {
@@ -55,7 +63,10 @@ impl Parser {
                     return Err(self.error(self.peek(), "Can't have more than 255 parameters."));
                 }
 
-                parameters.push(self.consume(&TokenType::Identifier, "Expect parameter name.")?.clone());
+                parameters.push(
+                    self.consume(&TokenType::Identifier, "Expect parameter name.")?
+                        .clone(),
+                );
 
                 if !self.match_(&[&TokenType::Comma]) {
                     break;
@@ -64,7 +75,10 @@ impl Parser {
         }
 
         self.consume(&TokenType::RightParen, "Expect ')' after parameters.")?;
-        self.consume(&TokenType::LeftBrace, format!("Expect '{{' before {kind} body.").as_str())?;
+        self.consume(
+            &TokenType::LeftBrace,
+            format!("Expect '{{' before {kind} body.").as_str(),
+        )?;
 
         let body = self.block()?;
 
@@ -86,6 +100,10 @@ impl Parser {
 
         if self.match_(&[&TokenType::Print]) {
             return self.print();
+        }
+
+        if self.match_(&[&TokenType::Return]) {
+            return self.return_();
         }
 
         if self.match_(&[&TokenType::While]) {
@@ -168,6 +186,19 @@ impl Parser {
         self.consume(&TokenType::Semicolon, "Expect ';' after value.")?;
 
         Ok(Statement::Print(expression))
+    }
+
+    pub fn return_(&mut self) -> StatementParserResult {
+        let keyword = self.previous().clone();
+
+        let mut value: Option<Expression> = None;
+        if !self.check(&TokenType::Semicolon) {
+            value = Some(self.expression()?);
+        }
+
+        self.consume(&TokenType::Semicolon, "Expect ';' after return value.")?;
+
+        Ok(Statement::Return { keyword, value })
     }
 
     pub fn while_(&mut self) -> StatementParserResult {
@@ -391,7 +422,7 @@ impl Parser {
                 arguments.push(self.expression()?);
 
                 if !self.match_(&[&TokenType::Comma]) {
-                    break
+                    break;
                 }
             }
         }
@@ -401,7 +432,7 @@ impl Parser {
         Ok(Expression::Call {
             callee: Box::new(callee),
             parenthesis: parenthesis.clone(),
-            arguments
+            arguments,
         })
     }
 

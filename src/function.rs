@@ -1,4 +1,4 @@
-use crate::{EvaluateInterpreterResult, Interpreter, Statement, Token, Value};
+use crate::{ExecuteInterpreterResult, Interpreter, Statement, Token, Value};
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -7,7 +7,7 @@ pub trait Callable: std::fmt::Debug {
         interpreter: &mut Interpreter,
         arguments: Vec<Value>,
         token: Token,
-    ) -> EvaluateInterpreterResult;
+    ) -> ExecuteInterpreterResult;
     fn as_str(&self) -> String;
 }
 
@@ -34,15 +34,15 @@ impl super::Callable for LoxFunction {
         interpreter: &mut Interpreter,
         arguments: Vec<Value>,
         _: Token,
-    ) -> EvaluateInterpreterResult {
+    ) -> ExecuteInterpreterResult {
         let mut environment = interpreter.environment.enclose();
 
         for (parameter, value) in self.parameters.iter().zip(arguments.into_iter()) {
             environment.define(parameter.lexeme.clone(), value);
         }
 
-        interpreter.execute_block(self.body.clone(), environment)?;
-        Ok(Value::Nil)
+        let returned = interpreter.execute_block(self.body.clone(), environment)?;
+        Ok(returned)
     }
 
     fn as_str(&self) -> String {
@@ -51,7 +51,7 @@ impl super::Callable for LoxFunction {
 }
 
 pub mod native {
-    use crate::{EvaluateInterpreterResult, Interpreter, InterpreterError, Token, Value};
+    use crate::{ExecuteInterpreterResult, Interpreter, InterpreterError, Token, Value};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     #[derive(Debug, PartialEq)]
@@ -67,9 +67,9 @@ pub mod native {
             _: &mut Interpreter,
             _: Vec<Value>,
             token: Token,
-        ) -> EvaluateInterpreterResult {
+        ) -> ExecuteInterpreterResult {
             match SystemTime::now().duration_since(UNIX_EPOCH) {
-                Ok(duration) => Ok(Value::Number(duration.as_secs() as f64)),
+                Ok(duration) => Ok(Some(Value::Number(duration.as_secs() as f64))),
                 Err(error) => Err(InterpreterError {
                     token: Some(token),
                     message: format!("SystemTime error: {}", error),

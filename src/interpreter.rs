@@ -9,7 +9,7 @@ pub struct InterpreterError {
     pub message: String,
 }
 
-pub type ExecuteInterpreterResult = Result<(), InterpreterError>;
+pub type ExecuteInterpreterResult = Result<Option<Value>, InterpreterError>;
 pub type EvaluateInterpreterResult = Result<Value, InterpreterError>;
 
 #[derive(Debug)]
@@ -35,17 +35,19 @@ impl Interpreter {
 
     pub fn interpret(&mut self, statements: Vec<Statement>) -> ExecuteInterpreterResult {
         for statement in statements {
-            self.execute(statement)?
+            self.execute(statement)?;
         }
 
-        Ok(())
+        Ok(None)
     }
 
     pub fn execute(&mut self, statement: Statement) -> ExecuteInterpreterResult {
         match statement {
             Statement::Expression(expression) => {
-                self.evaluate(expression)?;
-            }
+                let returned = self.evaluate(expression)?;
+
+                Ok(Some(returned))
+            },
             Statement::Function {
                 name,
                 parameters,
@@ -61,6 +63,8 @@ impl Interpreter {
                     function.get_name().into(),
                     Value::Function(Rc::new(RefCell::new(function))),
                 );
+
+                Ok(None)
             }
             Statement::If {
                 condition,
@@ -70,38 +74,57 @@ impl Interpreter {
                 let result = self.evaluate(condition)?;
 
                 if self.is_truthy(result) {
-                    self.execute(*then_branch)?;
+                    Ok(self.execute(*then_branch)?)
                 } else if let Some(statement) = else_branch {
-                    self.execute(*statement)?;
+                    Ok(self.execute(*statement)?)
+                } else {
+                    Ok(None)
                 }
             }
-            Statement::Print(expression) => match self.evaluate(expression)? {
-                Value::Number(value) => println!("{value}"),
-                value => println!("{value}"),
-            },
+            Statement::Print(expression) => {
+                match self.evaluate(expression)? {
+                    Value::Number(value) => println!("{value}"),
+                    value => println!("{value}"),
+                }
+
+                Ok(None)
+            }
             Statement::Variable { name, initializer } => {
                 let mut value = Value::Nil;
                 if let Some(expression) = initializer {
                     value = self.evaluate(expression)?;
                 }
 
-                self.environment.define(name.lexeme, value)
-            }
-            Statement::While { condition, body } => loop {
-                let is_true = self.evaluate(condition.clone())?;
+                self.environment.define(name.lexeme, value);
 
-                if !self.is_truthy(is_true) {
-                    break;
+                Ok(None)
+            }
+            Statement::Return { keyword: _, value } => {
+                if let Some(expression) = value {
+                    return Ok(Some(self.evaluate(expression)?));
                 }
 
-                self.execute(*body.clone())?;
-            },
+                Ok(Some(Value::Nil))
+            }
+            Statement::While { condition, body } => {
+                loop {
+                    let is_true = self.evaluate(condition.clone())?;
+
+                    if !self.is_truthy(is_true) {
+                        break;
+                    }
+
+                    if let Some(returned) = self.execute(*body.clone())? {
+                        return Ok(Some(returned));
+                    }
+                }
+
+                Ok(None)
+            }
             Statement::Block(statements) => {
-                self.execute_block(statements, self.environment.enclose())?;
+                Ok(self.execute_block(statements, self.environment.enclose())?)
             }
         }
-
-        Ok(())
     }
 
     pub fn execute_block(
@@ -113,14 +136,21 @@ impl Interpreter {
         self.environment = environment;
 
         for statement in statements {
-            if let Err(error) = self.execute(statement) {
-                self.environment = previous;
-                return Err(error);
+            match self.execute(statement) {
+                Err(error) => {
+                    self.environment = previous;
+                    return Err(error);
+                }
+                Ok(Some(value)) => {
+                    self.environment = previous;
+                    return Ok(Some(value));
+                }
+                Ok(None) => {}
             }
         }
 
         self.environment = previous;
-        Ok(())
+        Ok(None)
     }
 
     pub fn evaluate(&mut self, expression: Expression) -> EvaluateInterpreterResult {
@@ -272,7 +302,11 @@ impl Interpreter {
                         });
                     }
 
-                    return callable.borrow().call(self, arguments_values, parenthesis);
+                    let returned_value =
+                        callable
+                            .borrow()
+                            .call(self, arguments_values, parenthesis)?;
+                    return Ok(returned_value.unwrap_or(Value::Nil));
                 } else {
                     Err(InterpreterError {
                         token: Some(parenthesis.clone()),
