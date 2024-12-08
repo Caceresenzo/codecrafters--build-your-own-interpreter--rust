@@ -1,0 +1,3 @@
+print clock();
+print clock() + 75;
+print clock() / 1000;

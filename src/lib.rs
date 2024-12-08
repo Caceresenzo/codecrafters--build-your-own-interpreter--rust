@@ -1,15 +1,19 @@
 pub mod environment;
 pub mod expression;
+pub mod function;
 pub mod grammar;
 pub mod interpreter;
 pub mod parser;
 pub mod scanner;
 pub mod statement;
+pub mod value;
 
 pub use environment::Environment;
 pub use expression::*;
+pub use function::*;
 pub use grammar::*;
 pub use interpreter::*;
 pub use parser::*;
 pub use scanner::*;
 pub use statement::*;
+pub use value::*;

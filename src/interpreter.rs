@@ -1,4 +1,6 @@
-use crate::{Environment, Expression, Literal, Statement, Token, TokenType};
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{native, Environment, Expression, Statement, Token, TokenType, Value};
 
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
@@ -8,17 +10,26 @@ pub struct InterpreterError {
 }
 
 pub type ExecuteInterpreterResult = Result<(), InterpreterError>;
-pub type EvaluateInterpreterResult = Result<Literal, InterpreterError>;
+pub type EvaluateInterpreterResult = Result<Value, InterpreterError>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 pub struct Interpreter {
+    globals: Environment,
     environment: Environment,
 }
 
 impl Interpreter {
     pub fn new() -> Self {
+        let mut environment = Environment::new();
+
+        environment.define(
+            "clock".into(),
+            Value::Function(Rc::new(RefCell::new(native::ClockFunction {}))),
+        );
+
         Interpreter {
-            environment: Environment::new(),
+            globals: environment.clone(),
+            environment,
         }
     }
 
@@ -49,28 +60,26 @@ impl Interpreter {
                 }
             }
             Statement::Print(expression) => match self.evaluate(expression)? {
-                Literal::Number(value) => println!("{value}"),
+                Value::Number(value) => println!("{value}"),
                 value => println!("{value}"),
             },
             Statement::Variable { name, initializer } => {
-                let mut value = Literal::Nil;
+                let mut value = Value::Nil;
                 if let Some(expression) = initializer {
                     value = self.evaluate(expression)?;
                 }
 
                 self.environment.define(name.lexeme, value)
             }
-            Statement::While { condition, body } => {
-                loop {
-                    let is_true = self.evaluate(condition.clone())?;
+            Statement::While { condition, body } => loop {
+                let is_true = self.evaluate(condition.clone())?;
 
-                    if !self.is_truthy(is_true) {
-                        break;
-                    }
-
-                    self.execute(*body.clone())?;
+                if !self.is_truthy(is_true) {
+                    break;
                 }
-            }
+
+                self.execute(*body.clone())?;
+            },
             Statement::Block(statements) => {
                 self.execute_block(statements, self.environment.enclose())?;
             }
@@ -100,14 +109,14 @@ impl Interpreter {
 
     pub fn evaluate(&mut self, expression: Expression) -> EvaluateInterpreterResult {
         match expression {
-            Expression::Literal(literal) => Ok(literal),
+            Expression::Literal(literal) => Ok(literal.into()),
             Expression::Grouping(child) => self.evaluate(*child),
             Expression::Unary { operator, right } => {
                 let right_child = self.evaluate(*right)?;
 
                 match operator.token_type {
-                    TokenType::Bang => Ok(Literal::Boolean(!self.is_truthy(right_child))),
-                    TokenType::Minus => Ok(Literal::Number(
+                    TokenType::Bang => Ok(Value::Boolean(!self.is_truthy(right_child))),
+                    TokenType::Minus => Ok(Value::Number(
                         -self.check_number_operand(&operator, &right_child)?,
                     )),
                     _ => panic!("unreachable"),
@@ -126,34 +135,30 @@ impl Interpreter {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Number(x / y));
+                        return Ok(Value::Number(x / y));
                     }
                     TokenType::Star => {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Number(x * y));
+                        return Ok(Value::Number(x * y));
                     }
                     TokenType::Minus => {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Number(x - y));
+                        return Ok(Value::Number(x - y));
                     }
                     TokenType::Plus => {
-                        if let (Literal::Number(a), Literal::Number(b)) =
-                            (&left_child, &right_child)
-                        {
-                            return Ok(Literal::Number(*a + *b));
+                        if let (Value::Number(a), Value::Number(b)) = (&left_child, &right_child) {
+                            return Ok(Value::Number(*a + *b));
                         }
 
-                        if let (Literal::String(a), Literal::String(b)) =
-                            (&left_child, &right_child)
-                        {
-                            let mut output = a.to_owned();
+                        if let (Value::String(a), Value::String(b)) = (&left_child, &right_child) {
+                            let mut output: String = a.as_str().into();
                             output.push_str(b);
 
-                            return Ok(Literal::String(output));
+                            return Ok(Value::String(Rc::new(output)));
                         }
 
                         Err(InterpreterError {
@@ -165,28 +170,28 @@ impl Interpreter {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Boolean(x > y));
+                        return Ok(Value::Boolean(x > y));
                     }
                     TokenType::GreaterEqual => {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Boolean(x >= y));
+                        return Ok(Value::Boolean(x >= y));
                     }
                     TokenType::Less => {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Boolean(x < y));
+                        return Ok(Value::Boolean(x < y));
                     }
                     TokenType::LessEqual => {
                         let (x, y) =
                             self.check_number_operands(&operator, &left_child, &right_child)?;
 
-                        return Ok(Literal::Boolean(x <= y));
+                        return Ok(Value::Boolean(x <= y));
                     }
-                    TokenType::BangEqual => Ok(Literal::Boolean(left_child != right_child)),
-                    TokenType::EqualEqual => Ok(Literal::Boolean(left_child == right_child)),
+                    TokenType::BangEqual => Ok(Value::Boolean(left_child != right_child)),
+                    TokenType::EqualEqual => Ok(Value::Boolean(left_child == right_child)),
                     _ => panic!("unreachable"),
                 }
             }
@@ -200,7 +205,11 @@ impl Interpreter {
 
                 return Ok(value);
             }
-            Expression::Logical { left, operator, right } => {
+            Expression::Logical {
+                left,
+                operator,
+                right,
+            } => {
                 let left_value = self.evaluate(*left)?;
                 let is_left_truthy = self.is_truthy(left_value.clone());
 
@@ -211,7 +220,7 @@ impl Interpreter {
                         }
 
                         self.evaluate(*right)
-                    },
+                    }
                     TokenType::And => {
                         if !is_left_truthy {
                             return Ok(left_value);
@@ -222,13 +231,46 @@ impl Interpreter {
                     _ => panic!("unreachable"),
                 }
             }
+            Expression::Call {
+                callee,
+                parenthesis,
+                arguments,
+            } => {
+                let callee_value = self.evaluate(*callee)?;
+
+                let mut arguments_values: Vec<Value> = Vec::new();
+                for argument in arguments {
+                    let argument_value = self.evaluate(argument)?;
+                    arguments_values.push(argument_value);
+                }
+
+                if let Value::Function(callable) = callee_value {
+                    let arity = callable.borrow().arity();
+                    if arguments_values.len() != arity {
+                        return Err(InterpreterError {
+                            token: Some(parenthesis.clone()),
+                            message: format!(
+                                "Expected {arity} arguments but got {}.",
+                                arguments_values.len()
+                            ),
+                        });
+                    }
+
+                    return callable.borrow().call(self, arguments_values, parenthesis);
+                } else {
+                    Err(InterpreterError {
+                        token: Some(parenthesis.clone()),
+                        message: "Can only call functions and classes.".into(),
+                    })
+                }
+            }
         }
     }
 
-    pub fn is_truthy(&self, literal: Literal) -> bool {
-        match literal {
-            Literal::Nil => false,
-            Literal::Boolean(value) => value,
+    pub fn is_truthy(&self, value: Value) -> bool {
+        match value {
+            Value::Nil => false,
+            Value::Boolean(value) => value,
             _ => true,
         }
     }
@@ -236,10 +278,10 @@ impl Interpreter {
     pub fn check_number_operand(
         &self,
         operator: &Token,
-        operand: &Literal,
+        operand: &Value,
     ) -> Result<f64, InterpreterError> {
         match operand {
-            Literal::Number(x) => Ok(*x),
+            Value::Number(x) => Ok(*x),
             _ => Err(InterpreterError {
                 token: Some(operator.clone()),
                 message: "Operand must be a number.".into(),
@@ -250,11 +292,11 @@ impl Interpreter {
     pub fn check_number_operands(
         &self,
         operator: &Token,
-        left: &Literal,
-        right: &Literal,
+        left: &Value,
+        right: &Value,
     ) -> Result<(f64, f64), InterpreterError> {
         match (left, right) {
-            (Literal::Number(x), Literal::Number(y)) => Ok((*x, *y)),
+            (Value::Number(x), Value::Number(y)) => Ok((*x, *y)),
             _ => Err(InterpreterError {
                 token: Some(operator.clone()),
                 message: "Operands must be a number.".into(),
