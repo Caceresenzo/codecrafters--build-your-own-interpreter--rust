@@ -48,7 +48,7 @@ impl fmt::Display for Value {
             }
             Value::String(value) => write!(f, "{}", *value),
             Value::Number(value) => write!(f, "{value}"),
-            Value::Function(value) => write!(f, "{}", value.borrow().name()),
+            Value::Function(value) => write!(f, "{}", value.borrow().as_str()),
         }
     }
 }

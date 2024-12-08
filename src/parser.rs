@@ -32,11 +32,47 @@ impl Parser {
     }
 
     pub fn declaration(&mut self) -> StatementParserResult {
+        if self.match_(&[&TokenType::Fun]) {
+            return self.function("function");
+        }
+
         if self.match_(&[&TokenType::Var]) {
             return self.variable();
         }
 
         self.statement()
+    }
+
+    pub fn function(&mut self, kind: &str) -> StatementParserResult {
+        let name = self.consume(&TokenType::Identifier, format!("Expect {kind} name.").as_str())?.clone();
+
+        self.consume(&TokenType::LeftParen, format!("Expect '(' after {kind} name.").as_str())?;
+
+        let mut parameters: Vec<Token> = Vec::new();
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if parameters.len() >= 255 {
+                    return Err(self.error(self.peek(), "Can't have more than 255 parameters."));
+                }
+
+                parameters.push(self.consume(&TokenType::Identifier, "Expect parameter name.")?.clone());
+
+                if !self.match_(&[&TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        self.consume(&TokenType::RightParen, "Expect ')' after parameters.")?;
+        self.consume(&TokenType::LeftBrace, format!("Expect '{{' before {kind} body.").as_str())?;
+
+        let body = self.block()?;
+
+        Ok(Statement::Function {
+            name,
+            parameters,
+            body,
+        })
     }
 
     pub fn statement(&mut self) -> StatementParserResult {

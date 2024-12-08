@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{native, Environment, Expression, Statement, Token, TokenType, Value};
+use crate::{native, Environment, Expression, LoxFunction, Statement, Token, TokenType, Value};
 
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
@@ -14,8 +14,8 @@ pub type EvaluateInterpreterResult = Result<Value, InterpreterError>;
 
 #[derive(Debug)]
 pub struct Interpreter {
-    globals: Environment,
-    environment: Environment,
+    pub globals: Environment,
+    pub environment: Environment,
 }
 
 impl Interpreter {
@@ -45,6 +45,22 @@ impl Interpreter {
         match statement {
             Statement::Expression(expression) => {
                 self.evaluate(expression)?;
+            }
+            Statement::Function {
+                name,
+                parameters,
+                body,
+            } => {
+                let function = LoxFunction {
+                    name,
+                    parameters,
+                    body,
+                };
+
+                self.environment.define(
+                    function.get_name().into(),
+                    Value::Function(Rc::new(RefCell::new(function))),
+                );
             }
             Statement::If {
                 condition,

@@ -1,4 +1,4 @@
-use crate::{EvaluateInterpreterResult, Interpreter, Token, Value};
+use crate::{EvaluateInterpreterResult, Interpreter, Statement, Token, Value};
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -8,7 +8,46 @@ pub trait Callable: std::fmt::Debug {
         arguments: Vec<Value>,
         token: Token,
     ) -> EvaluateInterpreterResult;
-    fn name(&self) -> &str;
+    fn as_str(&self) -> String;
+}
+
+#[derive(Debug, PartialEq)]
+pub struct LoxFunction {
+    pub name: Token,
+    pub parameters: Vec<Token>,
+    pub body: Vec<Statement>,
+}
+
+impl LoxFunction {
+    pub fn get_name(&self) -> &str {
+        &self.name.lexeme
+    }
+}
+
+impl super::Callable for LoxFunction {
+    fn arity(&self) -> usize {
+        self.parameters.len()
+    }
+
+    fn call(
+        &self,
+        interpreter: &mut Interpreter,
+        arguments: Vec<Value>,
+        _: Token,
+    ) -> EvaluateInterpreterResult {
+        let mut environment = interpreter.environment.enclose();
+
+        for (parameter, value) in self.parameters.iter().zip(arguments.into_iter()) {
+            environment.define(parameter.lexeme.clone(), value);
+        }
+
+        interpreter.execute_block(self.body.clone(), environment)?;
+        Ok(Value::Nil)
+    }
+
+    fn as_str(&self) -> String {
+        format!("<fn {}>", self.name.lexeme)
+    }
 }
 
 pub mod native {
@@ -38,8 +77,8 @@ pub mod native {
             }
         }
 
-        fn name(&self) -> &str {
-            "clock"
+        fn as_str(&self) -> String {
+            format!("<native fn {}>", "clock")
         }
     }
 }

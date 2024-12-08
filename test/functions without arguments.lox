@@ -1,0 +1,10 @@
+fun bar() { print 10; }
+bar();
+fun foo() {
+  print 7;
+}
+foo();
+fun f() {}
+f();
+fun foo() {}
+print foo;

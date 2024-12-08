@@ -6,6 +6,11 @@ use {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression(Expression),
+    Function {
+        name: Token,
+        parameters: Vec<Token>,
+        body: Vec<Statement>,
+    },
     If {
         condition: Expression,
         then_branch: Box<Statement>,
