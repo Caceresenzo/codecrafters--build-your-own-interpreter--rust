@@ -1,11 +1,11 @@
 use {
-    crate::{EvaluateInterpreterResult, InterpreterError, Literal, Token},
+    crate::{EvaluateInterpreterResult, InterpreterError, Value, Token},
     std::{cell::RefCell, collections::HashMap, rc::Rc},
 };
 
 // Thanks https://github.com/Pvlerick/codecrafters-interpreter-rust/blob/master/src/environment.rs
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Environment {
     inner: Rc<RefCell<Inner>>,
 }
@@ -23,11 +23,11 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, name: String, value: Literal) {
+    pub fn define(&mut self, name: String, value: Value) {
         self.inner.borrow_mut().define(name, value);
     }
 
-    pub fn assign(&mut self, name: &Token, value: &Literal) -> Result<(), InterpreterError> {
+    pub fn assign(&mut self, name: &Token, value: &Value) -> Result<(), InterpreterError> {
         self.inner.borrow_mut().assign(name, value)
     }
 
@@ -36,10 +36,10 @@ impl Environment {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Inner {
     enclosing: Option<Rc<RefCell<Inner>>>,
-    values: HashMap<String, Literal>,
+    values: HashMap<String, Value>,
 }
 
 impl Inner {
@@ -57,11 +57,11 @@ impl Inner {
         }
     }
 
-    pub fn define(&mut self, name: String, value: Literal) {
+    pub fn define(&mut self, name: String, value: Value) {
         self.values.insert(name, value);
     }
 
-    pub fn assign(&mut self, name: &Token, value: &Literal) -> Result<(), InterpreterError> {
+    pub fn assign(&mut self, name: &Token, value: &Value) -> Result<(), InterpreterError> {
         let lexeme = &name.lexeme;
         if self.values.contains_key(lexeme) {
             self.values.insert(lexeme.clone(), value.clone());

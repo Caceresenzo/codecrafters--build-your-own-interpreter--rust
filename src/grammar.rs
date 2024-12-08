@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
@@ -136,7 +136,7 @@ impl fmt::Display for Token {
 pub enum Literal {
     Nil,
     Boolean(bool),
-    String(String),
+    String(Rc<String>),
     Number(f64),
 }
 
@@ -151,12 +151,10 @@ impl fmt::Display for Literal {
                     write!(f, "false")
                 }
             }
-            Literal::String(value) => {
-                write!(f, "{value}")
-            }
+            Literal::String(value) => write!(f, "{value}"),
             Literal::Number(value) => {
                 let int = *value as i64;
-                if int as f64 == *value {
+                if value.fract() == 0.0 {
                     write!(f, "{int}.0")
                 } else {
                     write!(f, "{value}")

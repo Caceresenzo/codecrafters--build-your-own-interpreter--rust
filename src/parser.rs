@@ -330,7 +330,43 @@ impl Parser {
             });
         }
 
-        self.primary()
+        self.call()
+    }
+
+    pub fn call(&mut self) -> ExpressionParserResult {
+        let mut expression = self.primary()?;
+
+        while self.match_(&[&TokenType::LeftParen]) {
+            expression = self.finish_call(expression)?
+        }
+
+        Ok(expression)
+    }
+
+    pub fn finish_call(&mut self, callee: Expression) -> ExpressionParserResult {
+        let mut arguments: Vec<Expression> = Vec::new();
+
+        if !self.check(&TokenType::RightParen) {
+            loop {
+                if arguments.len() >= 255 {
+                    return Err(self.error(self.peek(), "Can't have more than 255 arguments."));
+                }
+
+                arguments.push(self.expression()?);
+
+                if self.match_(&[&TokenType::Comma]) {
+                    break
+                }
+            }
+        }
+
+        let parenthesis = self.consume(&TokenType::RightParen, "Expect ')' after arguments.")?;
+
+        Ok(Expression::Call {
+            callee: Box::new(callee),
+            parenthesis: parenthesis.clone(),
+            arguments
+        })
     }
 
     pub fn primary(&mut self) -> ExpressionParserResult {
