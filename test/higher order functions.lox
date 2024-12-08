@@ -1,0 +1,10 @@
+fun makeGreeter(greeting) {
+  fun greet(name) {
+    print greeting + " " + name;
+  }
+  return greet;
+}
+var sayHello = makeGreeter("Hello");
+var sayHi = makeGreeter("Hi");
+sayHello("Bob");
+sayHi("Alice");

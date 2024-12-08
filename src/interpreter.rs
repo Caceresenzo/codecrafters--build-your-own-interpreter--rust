@@ -47,7 +47,7 @@ impl Interpreter {
                 self.evaluate(expression)?;
 
                 Ok(None)
-            },
+            }
             Statement::Function {
                 name,
                 parameters,
@@ -57,6 +57,7 @@ impl Interpreter {
                     name,
                     parameters,
                     body,
+                    closure: self.environment.clone(),
                 };
 
                 self.environment.define(

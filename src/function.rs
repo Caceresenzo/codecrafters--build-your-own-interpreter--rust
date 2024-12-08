@@ -1,4 +1,4 @@
-use crate::{ExecuteInterpreterResult, Interpreter, Statement, Token, Value};
+use crate::{Environment, ExecuteInterpreterResult, Interpreter, Statement, Token, Value};
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -16,6 +16,7 @@ pub struct LoxFunction {
     pub name: Token,
     pub parameters: Vec<Token>,
     pub body: Vec<Statement>,
+    pub closure: Environment,
 }
 
 impl LoxFunction {
@@ -35,7 +36,7 @@ impl super::Callable for LoxFunction {
         arguments: Vec<Value>,
         _: Token,
     ) -> ExecuteInterpreterResult {
-        let mut environment = interpreter.environment.enclose();
+        let mut environment = self.closure.enclose();
 
         for (parameter, value) in self.parameters.iter().zip(arguments.into_iter()) {
             environment.define(parameter.lexeme.clone(), value);

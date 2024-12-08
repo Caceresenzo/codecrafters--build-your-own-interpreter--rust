@@ -1,11 +1,11 @@
 use {
-    crate::{EvaluateInterpreterResult, InterpreterError, Value, Token},
+    crate::{EvaluateInterpreterResult, InterpreterError, Token, Value},
     std::{cell::RefCell, collections::HashMap, rc::Rc},
 };
 
 // Thanks https://github.com/Pvlerick/codecrafters-interpreter-rust/blob/master/src/environment.rs
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Environment {
     inner: Rc<RefCell<Inner>>,
 }
@@ -36,7 +36,7 @@ impl Environment {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Inner {
     enclosing: Option<Rc<RefCell<Inner>>>,
     values: HashMap<String, Value>,
