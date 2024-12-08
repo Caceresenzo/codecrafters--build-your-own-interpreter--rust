@@ -44,9 +44,9 @@ impl Interpreter {
     pub fn execute(&mut self, statement: Statement) -> ExecuteInterpreterResult {
         match statement {
             Statement::Expression(expression) => {
-                let returned = self.evaluate(expression)?;
+                self.evaluate(expression)?;
 
-                Ok(Some(returned))
+                Ok(None)
             },
             Statement::Function {
                 name,
