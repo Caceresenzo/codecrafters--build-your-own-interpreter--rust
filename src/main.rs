@@ -121,8 +121,7 @@ fn main() {
 
             let mut resolver = Resolver::new(&mut interpreter);
             if let Err(error) = resolver.resolve_statements(&statements) {
-                eprintln!("{error}");
-                eprintln!("[line {}]", error.token.line);
+                eprintln!("[line {}] Error at '{}': {}", error.token.line, error.token.lexeme, error);
 
                 exit(65);
             }
