@@ -192,11 +192,16 @@ impl<'a> Resolver<'a> {
                 self.declare(name)?;
                 self.define(name);
 
+                self.begin_scope();
+                self.scopes.back_mut().unwrap().insert("this".into(), true);
+
                 for method in methods {
                     let declaration = FunctionType::Method;
 
                     self.resolve_function(method, declaration)?;
                 }
+
+                self.end_scope();
 
                 Ok(())
             }
@@ -283,9 +288,19 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
 
-            Expression::Set { object, name: _, value } => {
+            Expression::Set {
+                object,
+                name: _,
+                value,
+            } => {
                 self.resolve_expression(value)?;
                 self.resolve_expression(object)?;
+
+                Ok(())
+            }
+
+            Expression::This { id, keyword } => {
+                self.resolve_local(*id, keyword);
 
                 Ok(())
             }

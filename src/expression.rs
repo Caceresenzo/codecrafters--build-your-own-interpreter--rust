@@ -43,6 +43,10 @@ pub enum Expression {
         name: Token,
         value: Box<Expression>,
     },
+    This {
+        id: u64,
+        keyword: Token,
+    },
 }
 
 impl fmt::Display for Expression {

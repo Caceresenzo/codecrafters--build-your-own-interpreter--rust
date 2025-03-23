@@ -128,8 +128,9 @@ impl Interpreter {
                 let mut loaded_methods: HashMap<String, Rc<RefCell<LoxFunction>>> = HashMap::new();
                 for method in methods {
                     let function = LoxFunction::new(method, self.environment.clone());
-                    loaded_methods.insert(method.name.lexeme.clone(), Rc::new(RefCell::new(function)));
-                } 
+                    loaded_methods
+                        .insert(method.name.lexeme.clone(), Rc::new(RefCell::new(function)));
+                }
 
                 let class = Class::new(name.lexeme.clone(), loaded_methods);
 
@@ -345,8 +346,9 @@ impl Interpreter {
             }
 
             Expression::Get { object, name } => {
-                if let Value::Instance(instance) = self.evaluate(object)? {
-                    return instance.borrow().get(name);
+                let object_value = self.evaluate(object)?;
+                if let Value::Instance(instance) = &object_value {
+                    return instance.borrow().get(name, &object_value);
                 }
 
                 Err(InterpreterError {
@@ -373,6 +375,8 @@ impl Interpreter {
                     message: "Only instances have fields.".into(),
                 })
             }
+
+            Expression::This { id, keyword } => self.look_up_variable(keyword, *id),
         }
     }
 
