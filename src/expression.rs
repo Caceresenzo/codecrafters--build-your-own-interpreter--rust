@@ -34,6 +34,15 @@ pub enum Expression {
         parenthesis: Token,
         arguments: Vec<Expression>,
     },
+    Get {
+        object: Box<Expression>,
+        name: Token,
+    },
+    Set {
+        object: Box<Expression>,
+        name: Token,
+        value: Box<Expression>,
+    },
 }
 
 impl fmt::Display for Expression {
@@ -47,10 +56,21 @@ impl fmt::Display for Expression {
                 operator,
                 right,
             } => write!(f, "({} {left} {right})", operator.lexeme),
-            Expression::Variable { id: _, name} => write!(f, "(var {})", name.lexeme),
-            Expression::Assign { id: _, name, right } => write!(f, "(assign {} {right})", name.lexeme),
-            Expression::Logical { left, operator, right } => write!(f, "(logical {} {left} {right})", operator.lexeme),
-            Expression::Call { callee, parenthesis, arguments } => write!(f, "(call {callee} {parenthesis} {arguments:?})"),
+            Expression::Variable { id: _, name } => write!(f, "(var {})", name.lexeme),
+            Expression::Assign { id: _, name, right } => {
+                write!(f, "(assign {} {right})", name.lexeme)
+            }
+            Expression::Logical {
+                left,
+                operator,
+                right,
+            } => write!(f, "(logical {} {left} {right})", operator.lexeme),
+            Expression::Call {
+                callee,
+                parenthesis,
+                arguments,
+            } => write!(f, "(call {callee} {parenthesis} {arguments:?})"),
+            _ => todo!(),
         }
     }
 }

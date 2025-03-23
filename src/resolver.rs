@@ -4,8 +4,8 @@ use crate::{Expression, Interpreter, Statement, Token};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum FunctionType {
-    NONE,
-    FUNCTION,
+    None,
+    Function,
 }
 
 #[derive(Debug)]
@@ -29,7 +29,7 @@ impl<'a> Resolver<'a> {
         Resolver {
             interpreter,
             scopes: VecDeque::new(),
-            current_function_type: FunctionType::NONE,
+            current_function_type: FunctionType::None,
         }
     }
 
@@ -136,7 +136,7 @@ impl<'a> Resolver<'a> {
                 self.declare(&data.name)?;
                 self.define(&data.name);
 
-                self.resolve_function(statement, FunctionType::FUNCTION)?;
+                self.resolve_function(statement, FunctionType::Function)?;
 
                 Ok(())
             }
@@ -169,7 +169,7 @@ impl<'a> Resolver<'a> {
             }
 
             Statement::Return { keyword, value } => {
-                if self.current_function_type == FunctionType::NONE {
+                if self.current_function_type == FunctionType::None {
                     return Err(ResolverError {
                         token: keyword.clone(),
                         message: "Can't return from top-level code.".into(),
@@ -269,6 +269,19 @@ impl<'a> Resolver<'a> {
 
             Expression::Unary { operator: _, right } => {
                 self.resolve_expression(right)?;
+
+                Ok(())
+            }
+
+            Expression::Get { object, name: _ } => {
+                self.resolve_expression(object)?;
+
+                Ok(())
+            }
+
+            Expression::Set { object, name: _, value } => {
+                self.resolve_expression(value)?;
+                self.resolve_expression(object)?;
 
                 Ok(())
             }

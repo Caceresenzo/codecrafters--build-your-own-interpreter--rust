@@ -303,6 +303,12 @@ impl Parser {
                     name: name.clone(),
                     right: Box::new(value),
                 });
+            } else if let Expression::Get { object, name } = expression {
+                return Ok(Expression::Set {
+                    object,
+                    name,
+                    value: Box::new(value),
+                });
             }
 
             return Err(self.error(&equals, "Invalid assignment target."));
@@ -435,8 +441,20 @@ impl Parser {
     pub fn call(&mut self) -> ExpressionParserResult {
         let mut expression = self.primary()?;
 
-        while self.match_(&[&TokenType::LeftParen]) {
-            expression = self.finish_call(expression)?
+        loop {
+            if self.match_(&[&TokenType::LeftParen]) {
+                expression = self.finish_call(expression)?
+            } else if self.match_(&[&TokenType::Dot]) {
+                let name =
+                    self.consume(&TokenType::Identifier, "Expect property name after '.'.")?;
+
+                expression = Expression::Get {
+                    object: Box::new(expression),
+                    name: name.clone(),
+                }
+            } else {
+                break;
+            }
         }
 
         Ok(expression)
