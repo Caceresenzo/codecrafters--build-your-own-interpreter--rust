@@ -39,8 +39,8 @@ impl Environment {
         self.inner.borrow_mut().get(name)
     }
 
-    pub fn get_at(&self, distance: u32, name: &String) -> EvaluateInterpreterResult {
-        self.ancestor(distance).borrow_mut().get_no_parent(name)
+    pub fn get_at(&self, distance: u32, name: String) -> EvaluateInterpreterResult {
+        self.ancestor(distance).borrow_mut().get_no_parent(&name)
     }
 
     fn ancestor(&self, distance: u32) -> Rc<RefCell<Inner>> {

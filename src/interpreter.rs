@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    native, Class, Environment, Expression, Instance, LoxFunction, Statement, Token, TokenType,
-    Value,
+    native, Callable, Class, Environment, Expression, Instance, LoxFunction, Statement, Token,
+    TokenType, Value,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -54,7 +54,7 @@ impl Interpreter {
                 Ok(None)
             }
             Statement::Function(data) => {
-                let function = LoxFunction::new(data, self.environment.clone());
+                let function = LoxFunction::new(data, false, self.environment.clone());
 
                 self.environment.define(
                     function.get_name().into(),
@@ -127,7 +127,12 @@ impl Interpreter {
 
                 let mut loaded_methods: HashMap<String, Rc<RefCell<LoxFunction>>> = HashMap::new();
                 for method in methods {
-                    let function = LoxFunction::new(method, self.environment.clone());
+                    let function = LoxFunction::new(
+                        method,
+                        method.name.lexeme.eq("init"),
+                        self.environment.clone(),
+                    );
+
                     loaded_methods
                         .insert(method.name.lexeme.clone(), Rc::new(RefCell::new(function)));
                 }
@@ -334,8 +339,28 @@ impl Interpreter {
 
                     Value::Class(class) => {
                         let instance = Instance::new(class.clone());
+                        let instance_value = Value::Instance(Rc::new(RefCell::new(instance)));
 
-                        Ok(Value::Instance(Rc::new(RefCell::new(instance))))
+                        if let Some(initializer) = class.borrow().find_function("init".into()) {
+                            let arity = initializer.borrow().arity();
+                            if arguments_values.len() != arity {
+                                return Err(InterpreterError {
+                                    token: Some(parenthesis.clone()),
+                                    message: format!(
+                                        "Expected {arity} arguments but got {}.",
+                                        arguments_values.len()
+                                    ),
+                                });
+                            }
+
+                            initializer.borrow().bind(instance_value.clone()).call(
+                                self,
+                                arguments_values,
+                                parenthesis,
+                            )?;
+                        }
+
+                        Ok(instance_value)
                     }
 
                     _ => Err(InterpreterError {
@@ -391,7 +416,7 @@ impl Interpreter {
     ) -> EvaluateInterpreterResult {
         if let Some(distance) = self.locals.get(&expression_id) {
             // println!("{} {expression_id} found at distance {}", name.lexeme, *distance);
-            self.environment.get_at(*distance, &name.lexeme)
+            self.environment.get_at(*distance, name.lexeme.clone())
         } else {
             // println!("{} {expression_id} not found", name.lexeme);
             self.globals.get(name)
