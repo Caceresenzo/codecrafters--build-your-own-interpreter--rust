@@ -18,16 +18,18 @@ pub struct LoxFunction {
     pub name: Token,
     pub parameters: Vec<Token>,
     pub body: Vec<Statement>,
+    pub is_initializer: bool,
     pub closure: Environment,
 }
 
 impl LoxFunction {
-    pub fn new(data: &FunctionData, environment: Environment) -> Self {
+    pub fn new(data: &FunctionData, is_initializer: bool, closure: Environment) -> Self {
         LoxFunction {
             name: data.name.clone(),
             parameters: data.parameters.clone(),
             body: data.body.clone(),
-            closure: environment,
+            is_initializer,
+            closure,
         }
     }
 
@@ -39,6 +41,7 @@ impl LoxFunction {
             name: self.name.clone(),
             parameters: self.parameters.clone(),
             body: self.body.clone(),
+            is_initializer: self.is_initializer,
             closure: environment,
         }
     }
@@ -66,6 +69,11 @@ impl super::Callable for LoxFunction {
         }
 
         let returned = interpreter.execute_block(self.body.as_ref(), environment)?;
+        
+        if self.is_initializer {
+            return Ok(Some(self.closure.get_at(0, "this".into())?))
+        }
+        
         Ok(returned)
     }
 
