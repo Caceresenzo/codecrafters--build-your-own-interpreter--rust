@@ -9,11 +9,18 @@ enum FunctionType {
     Method,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum ClassType {
+    None,
+    Class,
+}
+
 #[derive(Debug)]
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
     scopes: VecDeque<HashMap<String, bool>>,
     current_function_type: FunctionType,
+    current_class_type: ClassType,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -31,6 +38,7 @@ impl<'a> Resolver<'a> {
             interpreter,
             scopes: VecDeque::new(),
             current_function_type: FunctionType::None,
+            current_class_type: ClassType::None,
         }
     }
 
@@ -189,6 +197,9 @@ impl<'a> Resolver<'a> {
             }
 
             Statement::Class { name, methods } => {
+                let enclosing_type = self.current_class_type;
+                self.current_class_type = ClassType::Class;
+
                 self.declare(name)?;
                 self.define(name);
 
@@ -202,6 +213,8 @@ impl<'a> Resolver<'a> {
                 }
 
                 self.end_scope();
+
+                self.current_class_type = enclosing_type;
 
                 Ok(())
             }
@@ -300,6 +313,13 @@ impl<'a> Resolver<'a> {
             }
 
             Expression::This { id, keyword } => {
+                if self.current_class_type == ClassType::None {
+                    return Err(ResolverError {
+                        token: keyword.clone(),
+                        message: "Can't use 'this' outside of a class.".into(),
+                    });
+                }
+
                 self.resolve_local(*id, keyword);
 
                 Ok(())
