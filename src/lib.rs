@@ -7,6 +7,7 @@ pub mod parser;
 pub mod scanner;
 pub mod statement;
 pub mod value;
+pub mod resolver;
 
 pub use environment::Environment;
 pub use expression::*;
@@ -17,3 +18,4 @@ pub use parser::*;
 pub use scanner::*;
 pub use statement::*;
 pub use value::*;
+pub use resolver::*;

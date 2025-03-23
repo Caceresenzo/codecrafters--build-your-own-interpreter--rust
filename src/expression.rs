@@ -15,8 +15,12 @@ pub enum Expression {
         operator: Token,
         right: Box<Expression>,
     },
-    Variable(Token),
+    Variable {
+        id: u64,
+        name: Token,
+    },
     Assign {
+        id: u64,
         name: Token,
         right: Box<Expression>,
     },
@@ -43,8 +47,8 @@ impl fmt::Display for Expression {
                 operator,
                 right,
             } => write!(f, "({} {left} {right})", operator.lexeme),
-            Expression::Variable(name) => write!(f, "(var {})", name.lexeme),
-            Expression::Assign { name, right } => write!(f, "(assign {} {right})", name.lexeme),
+            Expression::Variable { id: _, name} => write!(f, "(var {})", name.lexeme),
+            Expression::Assign { id: _, name, right } => write!(f, "(assign {} {right})", name.lexeme),
             Expression::Logical { left, operator, right } => write!(f, "(logical {} {left} {right})", operator.lexeme),
             Expression::Call { callee, parenthesis, arguments } => write!(f, "(call {callee} {parenthesis} {arguments:?})"),
         }
