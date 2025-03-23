@@ -31,6 +31,18 @@ impl LoxFunction {
         }
     }
 
+    pub fn bind(&self, instance_value: Value) -> LoxFunction {
+        let mut environment = self.closure.enclose();
+        environment.define("this".into(), instance_value);
+
+        LoxFunction {
+            name: self.name.clone(),
+            parameters: self.parameters.clone(),
+            body: self.body.clone(),
+            closure: environment,
+        }
+    }
+
     pub fn get_name(&self) -> &str {
         &self.name.lexeme
     }

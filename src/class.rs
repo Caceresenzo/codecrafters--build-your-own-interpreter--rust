@@ -36,13 +36,15 @@ impl Instance {
         }
     }
 
-    pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {
+    pub fn get(&self, name: &Token, self_instance_rc: &Value) -> EvaluateInterpreterResult {
         if let Some(value) = self.fields.get(&name.lexeme) {
             return Ok(value.clone());
         }
 
         if let Some(function) = self.class.borrow().find_function(&name.lexeme) {
-            return Ok(Value::Function(function.clone()));
+            return Ok(Value::Function(Rc::new(RefCell::new(
+                function.borrow().bind(self_instance_rc.clone()),
+            ))));
         }
 
         Err(InterpreterError {

@@ -505,6 +505,13 @@ impl Parser {
             ));
         }
 
+        if self.match_(&[&TokenType::This]) {
+            return Ok(Expression::This {
+                id: self.next_id(),
+                keyword: self.previous().clone(),
+            });
+        }
+
         if self.match_(&[&TokenType::Identifier]) {
             return Ok(Expression::Variable {
                 id: self.next_id(),

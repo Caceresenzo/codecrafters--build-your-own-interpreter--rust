@@ -1,0 +1,7 @@
+class Spaceship {
+  identify() {
+    print this;
+  }
+}
+
+Spaceship().identify();
