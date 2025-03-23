@@ -1,7 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    native, Class, Environment, Expression, LoxFunction, Statement, Token, TokenType, Value,
+    native, Class, Environment, Expression, Instance, LoxFunction, Statement, Token, TokenType,
+    Value,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -133,7 +134,7 @@ impl Interpreter {
 
                 self.environment.define(
                     name.lexeme.clone(),
-                    Value::Function(Rc::new(RefCell::new(class))),
+                    Value::Class(Rc::new(RefCell::new(class))),
                 );
 
                 Ok(None)
@@ -308,28 +309,37 @@ impl Interpreter {
                     arguments_values.push(argument_value);
                 }
 
-                if let Value::Function(callable) = callee_value {
-                    let arity = callable.borrow().arity();
-                    if arguments_values.len() != arity {
-                        return Err(InterpreterError {
-                            token: Some(parenthesis.clone()),
-                            message: format!(
-                                "Expected {arity} arguments but got {}.",
-                                arguments_values.len()
-                            ),
-                        });
+                match callee_value {
+                    Value::Function(callable) => {
+                        let arity = callable.borrow().arity();
+                        if arguments_values.len() != arity {
+                            return Err(InterpreterError {
+                                token: Some(parenthesis.clone()),
+                                message: format!(
+                                    "Expected {arity} arguments but got {}.",
+                                    arguments_values.len()
+                                ),
+                            });
+                        }
+
+                        let returned_value =
+                            callable
+                                .borrow_mut()
+                                .call(self, arguments_values, parenthesis)?;
+
+                        Ok(returned_value.unwrap_or(Value::Nil))
                     }
 
-                    let returned_value =
-                        callable
-                            .borrow()
-                            .call(self, arguments_values, parenthesis)?;
-                    return Ok(returned_value.unwrap_or(Value::Nil));
-                } else {
-                    Err(InterpreterError {
+                    Value::Class(class) => {
+                        let instance = Instance::new(class.clone());
+
+                        Ok(Value::Instance(Rc::new(RefCell::new(instance))))
+                    }
+
+                    _ => Err(InterpreterError {
                         token: Some(parenthesis.clone()),
                         message: "Can only call functions and classes.".into(),
-                    })
+                    }),
                 }
             }
         }

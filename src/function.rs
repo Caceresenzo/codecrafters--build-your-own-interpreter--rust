@@ -2,12 +2,14 @@ use crate::{Environment, ExecuteInterpreterResult, Interpreter, Statement, Token
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
+
     fn call(
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Value>,
         token: &Token,
     ) -> ExecuteInterpreterResult;
+
     fn as_str(&self) -> String;
 }
 
