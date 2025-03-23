@@ -115,6 +115,8 @@ impl Inner {
             return parent.borrow().get(name);
         }
 
+        dbg!(&self.values);
+
         Err(InterpreterError {
             token: Some(name.clone()),
             message: format!("Undefined variable '{lexeme}'."),

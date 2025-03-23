@@ -1,11 +1,12 @@
 use std::collections::{HashMap, VecDeque};
 
-use crate::{Expression, Interpreter, Statement, Token};
+use crate::{Expression, FunctionData, Interpreter, Statement, Token};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum FunctionType {
     None,
     Function,
+    Method,
 }
 
 #[derive(Debug)]
@@ -65,6 +66,7 @@ impl<'a> Resolver<'a> {
     fn resolve_local(&mut self, expression_id: u64, name: &Token) {
         for (index, scope) in self.scopes.iter().enumerate().rev() {
             if scope.contains_key(&name.lexeme) {
+                // println!("resolve {} ({expression_id}) at distance {}", name.lexeme, self.scopes.len() - 1 - index);
                 self.interpreter
                     .resolve(expression_id, (self.scopes.len() - 1 - index) as u32);
                 return;
@@ -74,28 +76,24 @@ impl<'a> Resolver<'a> {
 
     fn resolve_function(
         &mut self,
-        function: &Statement,
+        function: &FunctionData,
         function_type: FunctionType,
     ) -> ResolverResult {
-        if let Statement::Function(data) = function {
-            let enclosing_type = self.current_function_type;
-            self.current_function_type = function_type;
+        let enclosing_type = self.current_function_type;
+        self.current_function_type = function_type;
 
-            self.begin_scope();
+        self.begin_scope();
 
-            for parameter in &data.parameters {
-                self.declare(parameter)?;
-                self.define(parameter);
-            }
-
-            self.resolve_statements(&data.body)?;
-
-            self.end_scope();
-
-            self.current_function_type = enclosing_type;
-        } else {
-            panic!("statement must be a function");
+        for parameter in &function.parameters {
+            self.declare(parameter)?;
+            self.define(parameter);
         }
+
+        self.resolve_statements(&function.body)?;
+
+        self.end_scope();
+
+        self.current_function_type = enclosing_type;
 
         Ok(())
     }
@@ -136,7 +134,7 @@ impl<'a> Resolver<'a> {
                 self.declare(&data.name)?;
                 self.define(&data.name);
 
-                self.resolve_function(statement, FunctionType::Function)?;
+                self.resolve_function(data, FunctionType::Function)?;
 
                 Ok(())
             }
@@ -190,9 +188,15 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
 
-            Statement::Class { name, methods: _ } => {
+            Statement::Class { name, methods } => {
                 self.declare(name)?;
                 self.define(name);
+
+                for method in methods {
+                    let declaration = FunctionType::Method;
+
+                    self.resolve_function(method, declaration)?;
+                }
 
                 Ok(())
             }

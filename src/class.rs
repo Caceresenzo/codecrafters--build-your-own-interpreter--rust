@@ -1,15 +1,20 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{EvaluateInterpreterResult, InterpreterError, Token, Value};
+use crate::{EvaluateInterpreterResult, InterpreterError, LoxFunction, Token, Value};
 
 #[derive(Debug, PartialEq)]
 pub struct Class {
     name: String,
+    methods: HashMap<String, Rc<RefCell<LoxFunction>>>,
 }
 
 impl Class {
-    pub fn new(name: String) -> Self {
-        Class { name }
+    pub fn new(name: String, methods: HashMap<String, Rc<RefCell<LoxFunction>>>) -> Self {
+        Class { name, methods }
+    }
+
+    pub fn find_function(&self, name: &String) -> Option<&Rc<RefCell<LoxFunction>>> {
+        return self.methods.get(name);
     }
 
     pub fn as_str(&self) -> String {
@@ -34,6 +39,10 @@ impl Instance {
     pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {
         if let Some(value) = self.fields.get(&name.lexeme) {
             return Ok(value.clone());
+        }
+
+        if let Some(function) = self.class.borrow().find_function(&name.lexeme) {
+            return Ok(Value::Function(function.clone()));
         }
 
         Err(InterpreterError {
