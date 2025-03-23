@@ -2,10 +2,17 @@ use std::collections::{HashMap, VecDeque};
 
 use crate::{Expression, Interpreter, Statement, Token};
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum FunctionType {
+    NONE,
+    FUNCTION,
+}
+
 #[derive(Debug)]
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
     scopes: VecDeque<HashMap<String, bool>>,
+    current_function_type: FunctionType,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -22,6 +29,7 @@ impl<'a> Resolver<'a> {
         Resolver {
             interpreter,
             scopes: VecDeque::new(),
+            current_function_type: FunctionType::NONE,
         }
     }
 
@@ -64,13 +72,20 @@ impl<'a> Resolver<'a> {
         }
     }
 
-    fn resolve_function(&mut self, function: &Statement) -> ResolverResult {
+    fn resolve_function(
+        &mut self,
+        function: &Statement,
+        function_type: FunctionType,
+    ) -> ResolverResult {
         if let Statement::Function {
             name: _,
             parameters,
             body,
         } = function
         {
+            let enclosing_type = self.current_function_type;
+            self.current_function_type = function_type;
+
             self.begin_scope();
 
             for parameter in parameters {
@@ -81,6 +96,8 @@ impl<'a> Resolver<'a> {
             self.resolve_statements(body)?;
 
             self.end_scope();
+
+            self.current_function_type = enclosing_type;
         } else {
             panic!("statement must be a function");
         }
@@ -128,7 +145,7 @@ impl<'a> Resolver<'a> {
                 self.declare(name)?;
                 self.define(name);
 
-                self.resolve_function(statement)?;
+                self.resolve_function(statement, FunctionType::FUNCTION)?;
 
                 Ok(())
             }
@@ -160,7 +177,14 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
 
-            Statement::Return { keyword: _, value } => {
+            Statement::Return { keyword, value } => {
+                if self.current_function_type == FunctionType::NONE {
+                    return Err(ResolverError {
+                        token: keyword.clone(),
+                        message: "Can't return from top-level code.".into(),
+                    })
+                }
+
                 if let Some(expression) = value {
                     self.resolve_expression(expression)?;
                 }
