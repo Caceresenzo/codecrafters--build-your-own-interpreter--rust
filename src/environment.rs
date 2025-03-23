@@ -34,10 +34,29 @@ impl Environment {
     pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {
         self.inner.borrow_mut().get(name)
     }
+
+    pub fn get_at(&self, distance: u32, name: &String) -> EvaluateInterpreterResult {
+        self.ancestor(distance).borrow_mut().get_or_nil(name)
+    }
+
+    fn ancestor(&self, distance: u32) -> Rc<RefCell<Inner>> {
+        let mut environment = Rc::clone(&self.inner);
+
+        for _ in 0..distance {
+            let next_environment = {
+                let borrowed_env = environment.borrow();
+                Rc::clone(borrowed_env.enclosing.as_ref().unwrap())
+            };
+
+            environment = next_environment;
+        }
+
+        return environment;
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct Inner {
+struct Inner {
     enclosing: Option<Rc<RefCell<Inner>>>,
     values: HashMap<String, Value>,
 }
@@ -92,5 +111,13 @@ impl Inner {
             token: Some(name.clone()),
             message: format!("Undefined variable '{lexeme}'."),
         })
+    }
+
+    pub fn get_or_nil(&self, name: &String) -> EvaluateInterpreterResult {
+        if let Some(value) = self.values.get(name) {
+            return Ok(value.clone());
+        }
+
+        Ok(Value::Nil)
     }
 }

@@ -6,7 +6,7 @@ pub trait Callable: std::fmt::Debug {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Value>,
-        token: Token,
+        token: &Token,
     ) -> ExecuteInterpreterResult;
     fn as_str(&self) -> String;
 }
@@ -34,7 +34,7 @@ impl super::Callable for LoxFunction {
         &self,
         interpreter: &mut Interpreter,
         arguments: Vec<Value>,
-        _: Token,
+        _: &Token,
     ) -> ExecuteInterpreterResult {
         let mut environment = self.closure.enclose();
 
@@ -42,7 +42,7 @@ impl super::Callable for LoxFunction {
             environment.define(parameter.lexeme.clone(), value);
         }
 
-        let returned = interpreter.execute_block(self.body.clone(), environment)?;
+        let returned = interpreter.execute_block(self.body.as_ref(), environment)?;
         Ok(returned)
     }
 
@@ -67,12 +67,12 @@ pub mod native {
             &self,
             _: &mut Interpreter,
             _: Vec<Value>,
-            token: Token,
+            token: &Token,
         ) -> ExecuteInterpreterResult {
             match SystemTime::now().duration_since(UNIX_EPOCH) {
                 Ok(duration) => Ok(Some(Value::Number(duration.as_secs() as f64))),
                 Err(error) => Err(InterpreterError {
-                    token: Some(token),
+                    token: Some(token.clone()),
                     message: format!("SystemTime error: {}", error),
                 }),
             }

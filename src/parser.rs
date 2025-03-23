@@ -6,6 +6,7 @@ use crate::{Expression, Literal, Statement, Token, TokenType};
 pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
+    next_id: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -17,7 +18,17 @@ type ExpressionParserResult = Result<Expression, ParseError>;
 
 impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
-        Parser { tokens, current: 0 }
+        Parser {
+            tokens,
+            current: 0,
+            next_id: 1,
+        }
+    }
+
+    fn next_id(&mut self) -> u64 {
+        let id = self.next_id;
+        self.next_id += 1;
+        return id;
     }
 
     pub fn parse(&mut self) -> Result<Vec<Statement>, ParseError> {
@@ -266,8 +277,9 @@ impl Parser {
             let equals = self.previous().clone();
             let value = self.assignment()?;
 
-            if let Expression::Variable(name) = expression {
+            if let Expression::Variable { id: _, name } = expression {
                 return Ok(Expression::Assign {
+                    id: self.next_id(),
                     name: name.clone(),
                     right: Box::new(value),
                 });
@@ -456,7 +468,10 @@ impl Parser {
         }
 
         if self.match_(&[&TokenType::Identifier]) {
-            return Ok(Expression::Variable(self.previous().clone()));
+            return Ok(Expression::Variable {
+                id: self.next_id(),
+                name: self.previous().clone(),
+            });
         }
 
         if self.match_(&[&TokenType::LeftParen]) {
