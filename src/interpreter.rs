@@ -342,6 +342,36 @@ impl Interpreter {
                     }),
                 }
             }
+
+            Expression::Get { object, name } => {
+                if let Value::Instance(instance) = self.evaluate(object)? {
+                    return instance.borrow().get(name);
+                }
+
+                Err(InterpreterError {
+                    token: Some(name.clone()),
+                    message: "Only instances have properties.".into(),
+                })
+            }
+
+            Expression::Set {
+                object,
+                name,
+                value,
+            } => {
+                if let Value::Instance(instance) = self.evaluate(object)? {
+                    let evaluated_value = self.evaluate(value)?;
+
+                    instance.borrow_mut().set(name, evaluated_value.clone())?;
+
+                    return Ok(evaluated_value);
+                }
+
+                Err(InterpreterError {
+                    token: Some(name.clone()),
+                    message: "Only instances have fields.".into(),
+                })
+            }
         }
     }
 

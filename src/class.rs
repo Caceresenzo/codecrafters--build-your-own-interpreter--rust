@@ -1,4 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+use crate::{EvaluateInterpreterResult, InterpreterError, Token, Value};
 
 #[derive(Debug, PartialEq)]
 pub struct Class {
@@ -18,11 +20,32 @@ impl Class {
 #[derive(Debug, PartialEq)]
 pub struct Instance {
     class: Rc<RefCell<Class>>,
+    fields: HashMap<String, Value>,
 }
 
 impl Instance {
     pub fn new(class: Rc<RefCell<Class>>) -> Self {
-        Instance { class }
+        Instance {
+            class,
+            fields: HashMap::new(),
+        }
+    }
+
+    pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {
+        if let Some(value) = self.fields.get(&name.lexeme) {
+            return Ok(value.clone());
+        }
+
+        Err(InterpreterError {
+            token: Some(name.clone()),
+            message: format!("Undefined property '{}'.", name.lexeme),
+        })
+    }
+
+    pub fn set(&mut self, name: &Token, value: Value) -> EvaluateInterpreterResult {
+        self.fields.insert(name.lexeme.clone(), value);
+
+        Ok(Value::Nil)
     }
 
     pub fn as_str(&self) -> String {
