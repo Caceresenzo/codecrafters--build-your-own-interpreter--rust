@@ -3,7 +3,8 @@ use std::fs;
 use std::io::{self, Write};
 use std::process::exit;
 
-use interpreter_starter_rust::{Interpreter, Value, Parser, Scanner};
+use interpreter_starter_rust::Resolver;
+use interpreter_starter_rust::{Interpreter, Parser, Scanner, Value};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -78,7 +79,7 @@ fn main() {
             };
 
             let mut interpreter = Interpreter::new();
-            match interpreter.evaluate(root) {
+            match interpreter.evaluate(&root) {
                 Ok(value) => match value {
                     Value::Number(x) => println!("{}", x),
                     _ => println!("{}", value),
@@ -117,8 +118,17 @@ fn main() {
             };
 
             let mut interpreter = Interpreter::new();
-            match interpreter.interpret(statements) {
-                Ok(_) => {},
+
+            let mut resolver = Resolver::new(&mut interpreter);
+            if let Err(error) = resolver.resolve_statements(&statements) {
+                eprintln!("{error}");
+                eprintln!("[line {}]", error.token.line);
+
+                exit(70);
+            }
+
+            match interpreter.interpret(&statements) {
+                Ok(_) => {}
                 Err(error) => {
                     eprintln!("{error}");
 
