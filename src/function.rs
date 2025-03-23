@@ -1,4 +1,4 @@
-use crate::{Environment, ExecuteInterpreterResult, Interpreter, Statement, Token, Value};
+use crate::{Environment, ExecuteInterpreterResult, FunctionData, Interpreter, Statement, Token, Value};
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -22,6 +22,15 @@ pub struct LoxFunction {
 }
 
 impl LoxFunction {
+    pub fn new(data: &FunctionData, environment: Environment) -> Self {
+        LoxFunction {
+            name: data.name.clone(),
+            parameters: data.parameters.clone(),
+            body: data.body.clone(),
+            closure: environment,
+        }
+    }
+
     pub fn get_name(&self) -> &str {
         &self.name.lexeme
     }

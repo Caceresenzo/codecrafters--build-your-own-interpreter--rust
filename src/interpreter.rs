@@ -54,12 +54,7 @@ impl Interpreter {
                 Ok(None)
             }
             Statement::Function(data) => {
-                let function = LoxFunction {
-                    name: data.name.clone(),
-                    parameters: data.parameters.clone(),
-                    body: data.body.clone(),
-                    closure: self.environment.clone(),
-                };
+                let function = LoxFunction::new(data, self.environment.clone());
 
                 self.environment.define(
                     function.get_name().into(),
@@ -127,10 +122,16 @@ impl Interpreter {
                 Ok(self.execute_block(statements, self.environment.enclose())?)
             }
 
-            Statement::Class { name, methods: _ } => {
+            Statement::Class { name, methods } => {
                 self.environment.define(name.lexeme.clone(), Value::Nil);
 
-                let class = Class::new(name.lexeme.clone());
+                let mut loaded_methods: HashMap<String, Rc<RefCell<LoxFunction>>> = HashMap::new();
+                for method in methods {
+                    let function = LoxFunction::new(method, self.environment.clone());
+                    loaded_methods.insert(method.name.lexeme.clone(), Rc::new(RefCell::new(function)));
+                } 
+
+                let class = Class::new(name.lexeme.clone(), loaded_methods);
 
                 self.environment.define(
                     name.lexeme.clone(),
@@ -385,8 +386,10 @@ impl Interpreter {
         expression_id: u64,
     ) -> EvaluateInterpreterResult {
         if let Some(distance) = self.locals.get(&expression_id) {
+            // println!("{} {expression_id} found at distance {}", name.lexeme, *distance);
             self.environment.get_at(*distance, &name.lexeme)
         } else {
+            // println!("{} {expression_id} not found", name.lexeme);
             self.globals.get(name)
         }
     }
