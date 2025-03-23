@@ -33,10 +33,19 @@ impl<'a> Resolver<'a> {
         self.scopes.pop_back();
     }
 
-    fn declare(&mut self, name: &Token) {
+    fn declare(&mut self, name: &Token) -> ResolverResult {
         if let Some(scope) = self.scopes.back_mut() {
+            if scope.contains_key(&name.lexeme) {
+                return Err(ResolverError {
+                    token: name.clone(),
+                    message: "Already a variable with this name in this scope.".into(),
+                });
+            }
+
             scope.insert(name.lexeme.clone(), false);
         }
+
+        Ok(())
     }
 
     fn define(&mut self, name: &Token) {
@@ -65,7 +74,7 @@ impl<'a> Resolver<'a> {
             self.begin_scope();
 
             for parameter in parameters {
-                self.declare(parameter);
+                self.declare(parameter)?;
                 self.define(parameter);
             }
 
@@ -100,7 +109,7 @@ impl<'a> Resolver<'a> {
             }
 
             Statement::Variable { name, initializer } => {
-                self.declare(&name);
+                self.declare(&name)?;
 
                 if let Some(expression) = initializer {
                     self.resolve_expression(expression)?
@@ -116,7 +125,7 @@ impl<'a> Resolver<'a> {
                 parameters: _,
                 body: _,
             } => {
-                self.declare(name);
+                self.declare(name)?;
                 self.define(name);
 
                 self.resolve_function(statement)?;
