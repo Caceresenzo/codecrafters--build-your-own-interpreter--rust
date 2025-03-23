@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, ptr::addr_of, rc::Rc};
 
 use crate::{native, Environment, Expression, LoxFunction, Statement, Token, TokenType, Value};
 
@@ -16,6 +16,7 @@ pub type EvaluateInterpreterResult = Result<Value, InterpreterError>;
 pub struct Interpreter {
     pub globals: Environment,
     pub environment: Environment,
+    locals: HashMap<u64, u32>,
 }
 
 impl Interpreter {
@@ -30,10 +31,11 @@ impl Interpreter {
         Interpreter {
             globals: environment.clone(),
             environment,
+            locals: HashMap::new(),
         }
     }
 
-    pub fn interpret(&mut self, statements: Vec<Statement>) -> ExecuteInterpreterResult {
+    pub fn interpret(&mut self, statements: &Vec<Statement>) -> ExecuteInterpreterResult {
         for statement in statements {
             self.execute(statement)?;
         }
@@ -41,7 +43,7 @@ impl Interpreter {
         Ok(None)
     }
 
-    pub fn execute(&mut self, statement: Statement) -> ExecuteInterpreterResult {
+    pub fn execute(&mut self, statement: &Statement) -> ExecuteInterpreterResult {
         match statement {
             Statement::Expression(expression) => {
                 self.evaluate(expression)?;
@@ -54,9 +56,9 @@ impl Interpreter {
                 body,
             } => {
                 let function = LoxFunction {
-                    name,
-                    parameters,
-                    body,
+                    name: name.clone(),
+                    parameters: parameters.clone(),
+                    body: body.clone(),
                     closure: self.environment.clone(),
                 };
 
@@ -75,9 +77,9 @@ impl Interpreter {
                 let result = self.evaluate(condition)?;
 
                 if self.is_truthy(result) {
-                    Ok(self.execute(*then_branch)?)
+                    Ok(self.execute(then_branch)?)
                 } else if let Some(statement) = else_branch {
-                    Ok(self.execute(*statement)?)
+                    Ok(self.execute(statement)?)
                 } else {
                     Ok(None)
                 }
@@ -96,7 +98,7 @@ impl Interpreter {
                     value = self.evaluate(expression)?;
                 }
 
-                self.environment.define(name.lexeme, value);
+                self.environment.define(name.lexeme.clone(), value);
 
                 Ok(None)
             }
@@ -109,13 +111,13 @@ impl Interpreter {
             }
             Statement::While { condition, body } => {
                 loop {
-                    let is_true = self.evaluate(condition.clone())?;
+                    let is_true = self.evaluate(condition)?;
 
                     if !self.is_truthy(is_true) {
                         break;
                     }
 
-                    if let Some(returned) = self.execute(*body.clone())? {
+                    if let Some(returned) = self.execute(body)? {
                         return Ok(Some(returned));
                     }
                 }
@@ -130,7 +132,7 @@ impl Interpreter {
 
     pub fn execute_block(
         &mut self,
-        statements: Vec<Statement>,
+        statements: &Vec<Statement>,
         environment: Environment,
     ) -> ExecuteInterpreterResult {
         let previous = self.environment.clone();
@@ -154,12 +156,12 @@ impl Interpreter {
         Ok(None)
     }
 
-    pub fn evaluate(&mut self, expression: Expression) -> EvaluateInterpreterResult {
+    pub fn evaluate(&mut self, expression: &Expression) -> EvaluateInterpreterResult {
         match expression {
-            Expression::Literal(literal) => Ok(literal.into()),
-            Expression::Grouping(child) => self.evaluate(*child),
+            Expression::Literal(literal) => Ok(literal.clone().into()),
+            Expression::Grouping(child) => self.evaluate(child),
             Expression::Unary { operator, right } => {
-                let right_child = self.evaluate(*right)?;
+                let right_child = self.evaluate(right)?;
 
                 match operator.token_type {
                     TokenType::Bang => Ok(Value::Boolean(!self.is_truthy(right_child))),
@@ -174,8 +176,8 @@ impl Interpreter {
                 operator,
                 right,
             } => {
-                let left_child = self.evaluate(*left)?;
-                let right_child = self.evaluate(*right)?;
+                let left_child = self.evaluate(left)?;
+                let right_child = self.evaluate(right)?;
 
                 match operator.token_type {
                     TokenType::Slash => {
@@ -243,10 +245,11 @@ impl Interpreter {
                 }
             }
             Expression::Variable(name) => {
-                return self.environment.get(&name);
+                return self.environment.get(name)
+                // return self.look_up_variable(&name, &expression);
             }
             Expression::Assign { name, right } => {
-                let value = self.evaluate(*right)?;
+                let value = self.evaluate(right)?;
 
                 self.environment.assign(&name, &value)?;
 
@@ -257,7 +260,7 @@ impl Interpreter {
                 operator,
                 right,
             } => {
-                let left_value = self.evaluate(*left)?;
+                let left_value = self.evaluate(left)?;
                 let is_left_truthy = self.is_truthy(left_value.clone());
 
                 match operator.token_type {
@@ -266,14 +269,14 @@ impl Interpreter {
                             return Ok(left_value);
                         }
 
-                        self.evaluate(*right)
+                        self.evaluate(right)
                     }
                     TokenType::And => {
                         if !is_left_truthy {
                             return Ok(left_value);
                         }
 
-                        self.evaluate(*right)
+                        self.evaluate(right)
                     }
                     _ => panic!("unreachable"),
                 }
@@ -283,7 +286,7 @@ impl Interpreter {
                 parenthesis,
                 arguments,
             } => {
-                let callee_value = self.evaluate(*callee)?;
+                let callee_value = self.evaluate(callee)?;
 
                 let mut arguments_values: Vec<Value> = Vec::new();
                 for argument in arguments {
@@ -315,6 +318,26 @@ impl Interpreter {
                     })
                 }
             }
+        }
+    }
+
+    pub fn resolve(&mut self, expression: &Expression, depth: u32) {
+        let ptr = addr_of!(expression) as u64;
+        println!("resolve {ptr} with depth {depth}");
+
+        self.locals.insert(ptr, depth);
+        println!("resolved {:?}", self.locals);
+    }
+
+    pub fn look_up_variable(&mut self, name: &Token, expression: &Expression) -> EvaluateInterpreterResult {
+        let ptr = addr_of!(expression) as u64;
+
+        if let Some(distance) = self.locals.get(&ptr) {
+            println!("look_up_variable {ptr} with distance {distance}");
+            self.environment.get_at(*distance, &name.lexeme)
+        } else {
+            println!("look_up_variable {ptr} with not found");
+            self.globals.get(name)
         }
     }
 
