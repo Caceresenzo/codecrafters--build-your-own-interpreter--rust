@@ -77,23 +77,18 @@ impl<'a> Resolver<'a> {
         function: &Statement,
         function_type: FunctionType,
     ) -> ResolverResult {
-        if let Statement::Function {
-            name: _,
-            parameters,
-            body,
-        } = function
-        {
+        if let Statement::Function(data) = function {
             let enclosing_type = self.current_function_type;
             self.current_function_type = function_type;
 
             self.begin_scope();
 
-            for parameter in parameters {
+            for parameter in &data.parameters {
                 self.declare(parameter)?;
                 self.define(parameter);
             }
 
-            self.resolve_statements(body)?;
+            self.resolve_statements(&data.body)?;
 
             self.end_scope();
 
@@ -137,13 +132,9 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
 
-            Statement::Function {
-                name,
-                parameters: _,
-                body: _,
-            } => {
-                self.declare(name)?;
-                self.define(name);
+            Statement::Function(data) => {
+                self.declare(&data.name)?;
+                self.define(&data.name);
 
                 self.resolve_function(statement, FunctionType::FUNCTION)?;
 
@@ -182,7 +173,7 @@ impl<'a> Resolver<'a> {
                     return Err(ResolverError {
                         token: keyword.clone(),
                         message: "Can't return from top-level code.".into(),
-                    })
+                    });
                 }
 
                 if let Some(expression) = value {
@@ -195,6 +186,13 @@ impl<'a> Resolver<'a> {
             Statement::While { condition, body } => {
                 self.resolve_expression(condition)?;
                 self.resolve_statement(body)?;
+
+                Ok(())
+            }
+
+            Statement::Class { name, methods: _ } => {
+                self.declare(name)?;
+                self.define(name);
 
                 Ok(())
             }

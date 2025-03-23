@@ -1,6 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{native, Environment, Expression, LoxFunction, Statement, Token, TokenType, Value};
+use crate::{
+    native, Class, Environment, Expression, LoxFunction, Statement, Token, TokenType, Value,
+};
 
 #[derive(Debug, thiserror::Error)]
 #[error("{message}")]
@@ -50,15 +52,11 @@ impl Interpreter {
 
                 Ok(None)
             }
-            Statement::Function {
-                name,
-                parameters,
-                body,
-            } => {
+            Statement::Function(data) => {
                 let function = LoxFunction {
-                    name: name.clone(),
-                    parameters: parameters.clone(),
-                    body: body.clone(),
+                    name: data.name.clone(),
+                    parameters: data.parameters.clone(),
+                    body: data.body.clone(),
                     closure: self.environment.clone(),
                 };
 
@@ -126,6 +124,19 @@ impl Interpreter {
             }
             Statement::Block(statements) => {
                 Ok(self.execute_block(statements, self.environment.enclose())?)
+            }
+
+            Statement::Class { name, methods: _ } => {
+                self.environment.define(name.lexeme.clone(), Value::Nil);
+
+                let class = Class::new(name.lexeme.clone());
+
+                self.environment.define(
+                    name.lexeme.clone(),
+                    Value::Function(Rc::new(RefCell::new(class))),
+                );
+
+                Ok(None)
             }
         }
     }
@@ -244,7 +255,7 @@ impl Interpreter {
                     _ => panic!("unreachable"),
                 }
             }
-            Expression::Variable { id, name} => {
+            Expression::Variable { id, name } => {
                 return self.look_up_variable(&name, *id);
             }
             Expression::Assign { id, name, right } => {
@@ -328,7 +339,11 @@ impl Interpreter {
         self.locals.insert(expression_id, depth);
     }
 
-    pub fn look_up_variable(&mut self, name: &Token, expression_id: u64) -> EvaluateInterpreterResult {
+    pub fn look_up_variable(
+        &mut self,
+        name: &Token,
+        expression_id: u64,
+    ) -> EvaluateInterpreterResult {
         if let Some(distance) = self.locals.get(&expression_id) {
             self.environment.get_at(*distance, &name.lexeme)
         } else {

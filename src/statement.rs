@@ -4,13 +4,16 @@ use {
 };
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct FunctionData {
+    pub name: Token,
+    pub parameters: Vec<Token>,
+    pub body: Vec<Statement>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression(Expression),
-    Function {
-        name: Token,
-        parameters: Vec<Token>,
-        body: Vec<Statement>,
-    },
+    Function(FunctionData),
     If {
         condition: Expression,
         then_branch: Box<Statement>,
@@ -30,4 +33,8 @@ pub enum Statement {
         body: Box<Statement>,
     },
     Block(Vec<Statement>),
+    Class {
+        name: Token,
+        methods: Vec<FunctionData>,
+    },
 }

@@ -1,6 +1,6 @@
 use std::vec::Vec;
 
-use crate::{Expression, Literal, Statement, Token, TokenType};
+use crate::{Expression, FunctionData, Literal, Statement, Token, TokenType};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Parser {
@@ -43,8 +43,12 @@ impl Parser {
     }
 
     pub fn declaration(&mut self) -> StatementParserResult {
+        if self.match_(&[&TokenType::Class]) {
+            return self.class_declaration();
+        }
+
         if self.match_(&[&TokenType::Fun]) {
-            return self.function("function");
+            return Ok(Statement::Function(self.function("function")?));
         }
 
         if self.match_(&[&TokenType::Var]) {
@@ -54,7 +58,23 @@ impl Parser {
         self.statement()
     }
 
-    pub fn function(&mut self, kind: &str) -> StatementParserResult {
+    pub fn class_declaration(&mut self) -> StatementParserResult {
+        let name = self
+            .consume(&TokenType::Identifier, "Expect class name.")?
+            .clone();
+        self.consume(&TokenType::LeftBrace, "Expect '{' before class body.")?;
+
+        let mut methods: Vec<FunctionData> = Vec::new();
+        while !self.check(&TokenType::RightBrace) && !self.is_at_end() {
+            methods.push(self.function("method")?);
+        }
+
+        self.consume(&TokenType::RightBrace, "Expect '}' after class body.")?;
+
+        Ok(Statement::Class { name, methods })
+    }
+
+    pub fn function(&mut self, kind: &str) -> Result<FunctionData, ParseError> {
         let name = self
             .consume(
                 &TokenType::Identifier,
@@ -93,7 +113,7 @@ impl Parser {
 
         let body = self.block()?;
 
-        Ok(Statement::Function {
+        Ok(FunctionData {
             name,
             parameters,
             body,

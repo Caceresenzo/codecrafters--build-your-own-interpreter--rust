@@ -8,6 +8,7 @@ pub mod scanner;
 pub mod statement;
 pub mod value;
 pub mod resolver;
+pub mod class;
 
 pub use environment::Environment;
 pub use expression::*;
@@ -19,3 +20,4 @@ pub use scanner::*;
 pub use statement::*;
 pub use value::*;
 pub use resolver::*;
+pub use class::*;
