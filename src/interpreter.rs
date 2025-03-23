@@ -325,18 +325,13 @@ impl Interpreter {
     }
 
     pub fn resolve(&mut self, expression_id: u64, depth: u32) {
-        // println!("resolve {expression_id} with depth {depth}");
-
         self.locals.insert(expression_id, depth);
-        // println!("resolved {:?}", self.locals);
     }
 
     pub fn look_up_variable(&mut self, name: &Token, expression_id: u64) -> EvaluateInterpreterResult {
         if let Some(distance) = self.locals.get(&expression_id) {
-            // println!("look_up_variable {} {expression_id} with distance {distance}", name.lexeme);
             self.environment.get_at(*distance, &name.lexeme)
         } else {
-            // println!("look_up_variable {} {expression_id} with not found", name.lexeme);
             self.globals.get(name)
         }
     }

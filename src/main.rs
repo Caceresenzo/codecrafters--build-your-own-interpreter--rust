@@ -124,7 +124,7 @@ fn main() {
                 eprintln!("{error}");
                 eprintln!("[line {}]", error.token.line);
 
-                exit(70);
+                exit(65);
             }
 
             match interpreter.interpret(&statements) {
