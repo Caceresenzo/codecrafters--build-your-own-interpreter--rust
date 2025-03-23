@@ -6,6 +6,7 @@ use crate::{Expression, FunctionData, Interpreter, Statement, Token};
 enum FunctionType {
     None,
     Function,
+    Initializer,
     Method,
 }
 
@@ -183,6 +184,13 @@ impl<'a> Resolver<'a> {
                 }
 
                 if let Some(expression) = value {
+                    if self.current_function_type == FunctionType::Initializer {
+                        return Err(ResolverError {
+                            token: keyword.clone(),
+                            message: "Can't return a value from an initializer.".into(),
+                        });
+                    }
+
                     self.resolve_expression(expression)?;
                 }
 
@@ -207,7 +215,11 @@ impl<'a> Resolver<'a> {
                 self.scopes.back_mut().unwrap().insert("this".into(), true);
 
                 for method in methods {
-                    let declaration = FunctionType::Method;
+                    let declaration = if method.name.lexeme.eq("init") {
+                        FunctionType::Initializer
+                    } else {
+                        FunctionType::Method
+                    };
 
                     self.resolve_function(method, declaration)?;
                 }
