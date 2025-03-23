@@ -13,8 +13,8 @@ impl Class {
         Class { name, methods }
     }
 
-    pub fn find_function(&self, name: &String) -> Option<&Rc<RefCell<LoxFunction>>> {
-        return self.methods.get(name);
+    pub fn find_function(&self, name: String) -> Option<&Rc<RefCell<LoxFunction>>> {
+        return self.methods.get(&name);
     }
 
     pub fn as_str(&self) -> String {
@@ -41,7 +41,7 @@ impl Instance {
             return Ok(value.clone());
         }
 
-        if let Some(function) = self.class.borrow().find_function(&name.lexeme) {
+        if let Some(function) = self.class.borrow().find_function(name.lexeme.clone()) {
             return Ok(Value::Function(Rc::new(RefCell::new(
                 function.borrow().bind(self_instance_rc.clone()),
             ))));

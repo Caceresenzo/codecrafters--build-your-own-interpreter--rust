@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    native, Class, Environment, Expression, Instance, LoxFunction, Statement, Token, TokenType,
-    Value,
+    native, Callable, Class, Environment, Expression, Instance, LoxFunction, Statement, Token,
+    TokenType, Value,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -334,8 +334,28 @@ impl Interpreter {
 
                     Value::Class(class) => {
                         let instance = Instance::new(class.clone());
+                        let instance_value = Value::Instance(Rc::new(RefCell::new(instance)));
 
-                        Ok(Value::Instance(Rc::new(RefCell::new(instance))))
+                        if let Some(initializer) = class.borrow().find_function("init".into()) {
+                            let arity = initializer.borrow().arity();
+                            if arguments_values.len() != arity {
+                                return Err(InterpreterError {
+                                    token: Some(parenthesis.clone()),
+                                    message: format!(
+                                        "Expected {arity} arguments but got {}.",
+                                        arguments_values.len()
+                                    ),
+                                });
+                            }
+
+                            initializer.borrow().bind(instance_value.clone()).call(
+                                self,
+                                arguments_values,
+                                parenthesis,
+                            )?;
+                        }
+
+                        Ok(instance_value)
                     }
 
                     _ => Err(InterpreterError {
