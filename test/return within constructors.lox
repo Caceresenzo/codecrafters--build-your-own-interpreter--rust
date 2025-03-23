@@ -1,0 +1,8 @@
+class Person {
+  init() {
+    print "world";
+    return;
+  }
+}
+
+Person();
