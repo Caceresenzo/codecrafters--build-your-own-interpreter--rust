@@ -1,4 +1,4 @@
-use crate::{ExecuteInterpreterResult, Interpreter, Token, Value};
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, PartialEq)]
 pub struct Class {
@@ -9,18 +9,23 @@ impl Class {
     pub fn new(name: String) -> Self {
         Class { name }
     }
+
+    pub fn as_str(&self) -> String {
+        return self.name.clone();
+    }
 }
 
-impl super::Callable for Class {
-    fn arity(&self) -> usize {
-        0
+#[derive(Debug, PartialEq)]
+pub struct Instance {
+    class: Rc<RefCell<Class>>,
+}
+
+impl Instance {
+    pub fn new(class: Rc<RefCell<Class>>) -> Self {
+        Instance { class }
     }
 
-    fn call(&self, _: &mut Interpreter, _: Vec<Value>, _: &Token) -> ExecuteInterpreterResult {
-        todo!()
-    }
-
-    fn as_str(&self) -> String {
-        return self.name.clone();
+    pub fn as_str(&self) -> String {
+        return format!("{} instance", self.class.borrow().name);
     }
 }

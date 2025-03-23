@@ -1,4 +1,4 @@
-use crate::{Callable, Literal};
+use crate::{Callable, Class, Instance, Literal};
 use core::fmt;
 use std::{cell::RefCell, rc::Rc};
 
@@ -9,6 +9,8 @@ pub enum Value {
     String(Rc<String>),
     Number(f64),
     Function(Rc<RefCell<dyn Callable>>),
+    Class(Rc<RefCell<Class>>),
+    Instance(Rc<RefCell<Instance>>),
 }
 
 impl From<Literal> for Value {
@@ -30,6 +32,8 @@ impl PartialEq for Value {
             (Value::String(a), Value::String(b)) => a == b,
             (Value::Number(a), Value::Number(b)) => a == b,
             (Value::Function(a), Value::Function(b)) => std::ptr::addr_eq(a.as_ptr(), b.as_ptr()),
+            (Value::Class(a), Value::Class(b)) => std::ptr::addr_eq(a.as_ptr(), b.as_ptr()),
+            (Value::Instance(a), Value::Function(b)) => std::ptr::addr_eq(a.as_ptr(), b.as_ptr()),
             _ => false,
         }
     }
@@ -49,6 +53,8 @@ impl fmt::Display for Value {
             Value::String(value) => write!(f, "{}", *value),
             Value::Number(value) => write!(f, "{value}"),
             Value::Function(value) => write!(f, "{}", value.borrow().as_str()),
+            Value::Class(value) => write!(f, "{}", value.borrow().as_str()),
+            Value::Instance(value) => write!(f, "{}", value.borrow().as_str()),
         }
     }
 }
