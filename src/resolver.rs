@@ -88,13 +88,15 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_statement(&mut self, statement: &Statement) -> ResolverResult {
-        match statement {
+        return match statement {
             Statement::Block(statements) => {
                 self.begin_scope();
 
                 self.resolve_statements(statements)?;
 
                 self.end_scope();
+
+                Ok(())
             }
 
             Statement::Variable { name, initializer } => {
@@ -105,6 +107,8 @@ impl<'a> Resolver<'a> {
                 }
 
                 self.define(&name);
+
+                Ok(())
             }
 
             Statement::Function {
@@ -116,10 +120,14 @@ impl<'a> Resolver<'a> {
                 self.define(name);
 
                 self.resolve_function(statement)?;
+
+                Ok(())
             }
 
             Statement::Expression(expression) => {
                 self.resolve_expression(expression)?;
+
+                Ok(())
             }
 
             Statement::If {
@@ -133,76 +141,106 @@ impl<'a> Resolver<'a> {
                 if let Some(else_branch_expression) = else_branch {
                     self.resolve_statement(else_branch_expression)?
                 }
+
+                Ok(())
             }
 
             Statement::Print(expression) => {
                 self.resolve_expression(expression)?;
+
+                Ok(())
             }
 
             Statement::Return { keyword: _, value } => {
                 if let Some(expression) = value {
                     self.resolve_expression(expression)?;
                 }
+
+                Ok(())
             }
 
             Statement::While { condition, body } => {
                 self.resolve_expression(condition)?;
                 self.resolve_statement(body)?;
-            }
-        }
 
-        Ok(())
+                Ok(())
+            }
+        };
     }
 
     fn resolve_expression(&mut self, expression: &Expression) -> ResolverResult {
-        match expression {
+        return match expression {
             Expression::Variable { id, name } => {
-                // if !self.scopes.is_empty()
-                //     && self.scopes.back().unwrap().get(&name.lexeme) == Some(&true)
-                // {
-                //     return Err(ResolverError {
-                //         token: name.clone(),
-                //         message: "Can't read local variable in its own initializer.".into(),
-                //     });
-                // }
+                if !self.scopes.is_empty()
+                    && self.scopes.back().unwrap().get(&name.lexeme) == Some(&false)
+                {
+                    return Err(ResolverError {
+                        token: name.clone(),
+                        message: "Can't read local variable in its own initializer.".into(),
+                    });
+                }
 
                 self.resolve_local(*id, name);
+
+                Ok(())
             }
 
             Expression::Assign { id, name, right } => {
                 self.resolve_expression(right)?;
                 self.resolve_local(*id, name);
+
+                Ok(())
             }
 
-            Expression::Binary { left, operator: _, right } => {
+            Expression::Binary {
+                left,
+                operator: _,
+                right,
+            } => {
                 self.resolve_expression(left)?;
                 self.resolve_expression(right)?;
+
+                Ok(())
             }
 
-            Expression::Call { callee, parenthesis: _, arguments } => {
+            Expression::Call {
+                callee,
+                parenthesis: _,
+                arguments,
+            } => {
                 self.resolve_expression(&callee)?;
 
                 for argument in arguments {
                     self.resolve_expression(argument)?;
                 }
+
+                Ok(())
             }
 
             Expression::Grouping(expression) => {
                 self.resolve_expression(expression)?;
+
+                Ok(())
             }
 
-            Expression::Literal(_) => {}
+            Expression::Literal(_) => Ok(()),
 
-            Expression::Logical { left, operator: _, right } => {
+            Expression::Logical {
+                left,
+                operator: _,
+                right,
+            } => {
                 self.resolve_expression(left)?;
                 self.resolve_expression(right)?;
+
+                Ok(())
             }
 
             Expression::Unary { operator: _, right } => {
-                self.resolve_expression(right)?
-            }
-        }
+                self.resolve_expression(right)?;
 
-        Ok(())
+                Ok(())
+            }
+        };
     }
 }
