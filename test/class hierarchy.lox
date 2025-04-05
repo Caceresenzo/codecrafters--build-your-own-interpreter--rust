@@ -1,0 +1,6 @@
+class Doughnut {}
+
+class BostonCream < Doughnut {}
+
+print Doughnut();
+print BostonCream();

@@ -5,12 +5,21 @@ use crate::{EvaluateInterpreterResult, InterpreterError, LoxFunction, Token, Val
 #[derive(Debug, PartialEq)]
 pub struct Class {
     name: String,
+    superclass: Option<Rc<RefCell<Class>>>,
     methods: HashMap<String, Rc<RefCell<LoxFunction>>>,
 }
 
 impl Class {
-    pub fn new(name: String, methods: HashMap<String, Rc<RefCell<LoxFunction>>>) -> Self {
-        Class { name, methods }
+    pub fn new(
+        name: String,
+        superclass: Option<Rc<RefCell<Class>>>,
+        methods: HashMap<String, Rc<RefCell<LoxFunction>>>,
+    ) -> Self {
+        Class {
+            name,
+            superclass,
+            methods,
+        }
     }
 
     pub fn find_function(&self, name: String) -> Option<&Rc<RefCell<LoxFunction>>> {
