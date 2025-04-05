@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    native, Callable, Class, Environment, Expression, Instance, LoxFunction,
-    Statement, Token, TokenType, Value,
+    native, Callable, Class, Environment, Expression, Instance, LoxFunction, Statement, Token,
+    TokenType, Value,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -143,6 +143,12 @@ impl Interpreter {
 
                 self.environment.define(name.lexeme.clone(), Value::Nil);
 
+                if superclass.is_some() {
+                    self.environment = self.environment.enclose();
+                    self.environment
+                        .define("super".into(), Value::Class(superclass_rc.clone().unwrap()));
+                }
+
                 let mut loaded_methods: HashMap<String, Rc<RefCell<LoxFunction>>> = HashMap::new();
                 for method in methods {
                     let function = LoxFunction::new(
@@ -156,6 +162,10 @@ impl Interpreter {
                 }
 
                 let class = Class::new(name.lexeme.clone(), superclass_rc, loaded_methods);
+
+                if superclass.is_some() {
+                    self.environment = self.environment.enclosing();
+                }
 
                 self.environment.define(
                     name.lexeme.clone(),
@@ -357,7 +367,7 @@ impl Interpreter {
 
                     Value::Class(class) => {
                         let instance = Instance::new(class.clone());
-                        let instance_value = Value::Instance(Rc::new(RefCell::new(instance)));
+                        let instance_rc = Rc::new(RefCell::new(instance));
 
                         if let Some(initializer) = class.borrow().find_function("init".into()) {
                             let arity = initializer.borrow().arity();
@@ -371,14 +381,14 @@ impl Interpreter {
                                 });
                             }
 
-                            initializer.borrow().bind(instance_value.clone()).call(
+                            initializer.borrow().bind(instance_rc.clone()).call(
                                 self,
                                 arguments_values,
                                 parenthesis,
                             )?;
                         }
 
-                        Ok(instance_value)
+                        Ok(Value::Instance(instance_rc))
                     }
 
                     _ => Err(InterpreterError {
@@ -391,7 +401,7 @@ impl Interpreter {
             Expression::Get { object, name } => {
                 let object_value = self.evaluate(object)?;
                 if let Value::Instance(instance) = &object_value {
-                    return instance.borrow().get(name, &object_value);
+                    return instance.borrow().get(name, instance.clone());
                 }
 
                 Err(InterpreterError {
@@ -420,6 +430,45 @@ impl Interpreter {
             }
 
             Expression::This { id, keyword } => self.look_up_variable(keyword, *id),
+
+            Expression::Super {
+                id,
+                keyword: _,
+                method,
+            } => {
+                if let Some(distance) = self.locals.get(id) {
+                    if let Value::Class(superclass) = self
+                        .environment
+                        .get_at(distance.clone(), "super".into())
+                        .unwrap()
+                    {
+                        if let Value::Instance(instance) = self
+                            .environment
+                            .get_at(distance.clone() - 1, "this".into())
+                            .unwrap()
+                        {
+                            if let Some(method) =
+                                superclass.borrow().find_function(method.lexeme.clone())
+                            {
+                                return Ok(Value::Function(Rc::new(RefCell::new(
+                                    method.borrow().bind(instance),
+                                ))));
+                            } else {
+                                return Err(InterpreterError {
+                                    token: Some(method.clone()),
+                                    message: format!("Undefined property '{}'.", method.lexeme),
+                                });
+                            }
+                        } else {
+                            panic!();
+                        }
+                    } else {
+                        panic!();
+                    }
+                }
+
+                return Ok(Value::Nil);
+            }
         }
     }
 

@@ -47,6 +47,11 @@ pub enum Expression {
         id: u64,
         keyword: Token,
     },
+    Super {
+        id: u64,
+        keyword: Token,
+        method: Token,
+    },
 }
 
 impl fmt::Display for Expression {

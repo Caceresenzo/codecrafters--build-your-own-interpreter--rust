@@ -232,6 +232,9 @@ impl<'a> Resolver<'a> {
                     }
 
                     self.resolve_expression(superclass.as_ref().unwrap())?;
+
+                    self.begin_scope();
+                    self.scopes.back_mut().unwrap().insert("super".into(), true);
                 }
 
                 self.begin_scope();
@@ -248,6 +251,10 @@ impl<'a> Resolver<'a> {
                 }
 
                 self.end_scope();
+
+                if superclass.is_some() {
+                    self.end_scope();
+                }
 
                 self.current_class_type = enclosing_type;
 
@@ -356,6 +363,16 @@ impl<'a> Resolver<'a> {
                 }
 
                 self.resolve_local(*id, keyword);
+
+                Ok(())
+            }
+
+            Expression::Super {
+                id,
+                keyword,
+                method: _,
+            } => {
+                self.resolve_local(id.clone(), keyword);
 
                 Ok(())
             }

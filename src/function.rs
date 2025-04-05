@@ -1,4 +1,6 @@
-use crate::{Environment, ExecuteInterpreterResult, FunctionData, Interpreter, Statement, Token, Value};
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{Environment, ExecuteInterpreterResult, FunctionData, Instance, Interpreter, Statement, Token, Value};
 
 pub trait Callable: std::fmt::Debug {
     fn arity(&self) -> usize;
@@ -33,9 +35,9 @@ impl LoxFunction {
         }
     }
 
-    pub fn bind(&self, instance_value: Value) -> LoxFunction {
+    pub fn bind(&self, instance_rc: Rc<RefCell<Instance>>) -> LoxFunction {
         let mut environment = self.closure.enclose();
-        environment.define("this".into(), instance_value);
+        environment.define("this".into(), Value::Instance(instance_rc));
 
         LoxFunction {
             name: self.name.clone(),
