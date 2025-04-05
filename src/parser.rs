@@ -81,7 +81,11 @@ impl Parser {
 
         self.consume(&TokenType::RightBrace, "Expect '}' after class body.")?;
 
-        Ok(Statement::Class { name, superclass, methods })
+        Ok(Statement::Class {
+            name,
+            superclass,
+            methods,
+        })
     }
 
     pub fn function(&mut self, kind: &str) -> Result<FunctionData, ParseError> {
@@ -513,6 +517,22 @@ impl Parser {
             return Ok(Expression::Literal(
                 self.previous().literal.as_ref().unwrap().clone(),
             ));
+        }
+
+        if self.match_(&[&TokenType::Super]) {
+            let keyword = self.previous().clone();
+
+            self.consume(&TokenType::Dot, "Expect '.' after 'super'.")?;
+
+            let method = self
+                .consume(&TokenType::Identifier, "Expect superclass method name.")?
+                .clone();
+
+            return Ok(Expression::Super {
+                id: self.next_id(),
+                keyword,
+                method: method.clone(),
+            });
         }
 
         if self.match_(&[&TokenType::This]) {

@@ -23,6 +23,18 @@ impl Environment {
         }
     }
 
+    pub fn enclosing(&self) -> Self {
+        Self {
+            inner: self
+                .inner
+                .borrow()
+                .enclosing
+                .as_ref()
+                .unwrap()
+                .clone(),
+        }
+    }
+
     pub fn define(&mut self, name: String, value: Value) {
         self.inner.borrow_mut().define(name, value);
     }
@@ -31,8 +43,16 @@ impl Environment {
         self.inner.borrow_mut().assign(name, value)
     }
 
-    pub fn assign_at(&mut self, distance: u32, name: &Token, value: &Value) -> Result<(), InterpreterError> {
-        Ok(self.ancestor(distance).borrow_mut().assign_no_parent(name, value))
+    pub fn assign_at(
+        &mut self,
+        distance: u32,
+        name: &Token,
+        value: &Value,
+    ) -> Result<(), InterpreterError> {
+        Ok(self
+            .ancestor(distance)
+            .borrow_mut()
+            .assign_no_parent(name, value))
     }
 
     pub fn get(&self, name: &Token) -> EvaluateInterpreterResult {

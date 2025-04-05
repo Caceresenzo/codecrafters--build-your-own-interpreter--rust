@@ -54,7 +54,7 @@ impl Instance {
         }
     }
 
-    pub fn get(&self, name: &Token, self_instance_rc: &Value) -> EvaluateInterpreterResult {
+    pub fn get(&self, name: &Token, self_instance_rc: Rc<RefCell<Instance>>) -> EvaluateInterpreterResult {
         if let Some(value) = self.fields.get(&name.lexeme) {
             return Ok(value.clone());
         }
