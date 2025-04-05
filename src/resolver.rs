@@ -14,6 +14,7 @@ enum FunctionType {
 enum ClassType {
     None,
     Class,
+    Subclass,
 }
 
 #[derive(Debug)]
@@ -216,6 +217,8 @@ impl<'a> Resolver<'a> {
                 self.define(name);
 
                 if superclass.is_some() {
+                    self.current_class_type = ClassType::Subclass;
+
                     if let Expression::Variable {
                         id: _,
                         name: superclass_name,
@@ -372,6 +375,18 @@ impl<'a> Resolver<'a> {
                 keyword,
                 method: _,
             } => {
+                if self.current_class_type == ClassType::None {
+                    return Err(ResolverError {
+                        token: keyword.clone(),
+                        message: "Can't use 'super' outside of a class.".into(),
+                    });
+                } else if self.current_class_type != ClassType::Subclass {
+                    return Err(ResolverError {
+                        token: keyword.clone(),
+                        message: "Can't use 'super' in a class with no superclass.".into(),
+                    });
+                }
+
                 self.resolve_local(id.clone(), keyword);
 
                 Ok(())
