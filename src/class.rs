@@ -22,8 +22,17 @@ impl Class {
         }
     }
 
-    pub fn find_function(&self, name: String) -> Option<&Rc<RefCell<LoxFunction>>> {
-        return self.methods.get(&name);
+    pub fn find_function(&self, name: String) -> Option<Rc<RefCell<LoxFunction>>> {
+        let method = self.methods.get(&name);
+        if let Some(rc) = method {
+            return Some(rc.clone());
+        }
+
+        if let Some(rc) = self.superclass.clone() {
+            return rc.borrow().find_function(name);
+        }
+
+        None
     }
 
     pub fn as_str(&self) -> String {
