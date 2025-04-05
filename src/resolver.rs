@@ -204,12 +204,27 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
 
-            Statement::Class { name, methods } => {
+            Statement::Class { name, superclass, methods } => {
                 let enclosing_type = self.current_class_type;
                 self.current_class_type = ClassType::Class;
 
                 self.declare(name)?;
                 self.define(name);
+
+                if superclass.is_some() {
+                    if let Expression::Variable { id: _, name: superclass_name } = superclass.as_ref().unwrap() {
+                        if name.lexeme.eq(&superclass_name.lexeme) {
+                            return Err(ResolverError {
+                                token: superclass_name.clone(),
+                                message: "A class can't inherit from itself.".into(),
+                            });
+                        }
+                    } else {
+                        panic!();
+                    }
+
+                    self.resolve_expression(superclass.as_ref().unwrap())?;
+                }
 
                 self.begin_scope();
                 self.scopes.back_mut().unwrap().insert("this".into(), true);

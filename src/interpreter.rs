@@ -1,8 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::{
-    native, Callable, Class, Environment, Expression, Instance, LoxFunction, Statement, Token,
-    TokenType, Value,
+    native, Callable, Class, Environment, Expression, Instance, LoxFunction,
+    Statement, Token, TokenType, Value,
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -122,7 +122,25 @@ impl Interpreter {
                 Ok(self.execute_block(statements, self.environment.enclose())?)
             }
 
-            Statement::Class { name, methods } => {
+            Statement::Class {
+                name,
+                superclass,
+                methods,
+            } => {
+                let mut superclass_rc: Option<Rc<RefCell<Class>>> = None;
+                if let Some(superclass_expression) = superclass {
+                    let result = self.evaluate(superclass_expression)?;
+
+                    if let Value::Class(rc) = result {
+                        superclass_rc = Some(rc);
+                    } else {
+                        return Err(InterpreterError {
+                            token: Some(name.clone()),
+                            message: "Superclass must be a class.".into(),
+                        });
+                    }
+                }
+
                 self.environment.define(name.lexeme.clone(), Value::Nil);
 
                 let mut loaded_methods: HashMap<String, Rc<RefCell<LoxFunction>>> = HashMap::new();
@@ -137,7 +155,7 @@ impl Interpreter {
                         .insert(method.name.lexeme.clone(), Rc::new(RefCell::new(function)));
                 }
 
-                let class = Class::new(name.lexeme.clone(), loaded_methods);
+                let class = Class::new(name.lexeme.clone(), superclass_rc, loaded_methods);
 
                 self.environment.define(
                     name.lexeme.clone(),

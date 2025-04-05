@@ -35,6 +35,7 @@ pub enum Statement {
     Block(Vec<Statement>),
     Class {
         name: Token,
+        superclass: Option<Expression>,
         methods: Vec<FunctionData>,
     },
 }
